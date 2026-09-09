@@ -1,4 +1,6 @@
-import { Renderer } from "pixi.js"
+import { Renderer, WebGLRenderer } from "pixi.js"
+import { getGlContext } from "./compatibility/gl-context"
+
 export namespace Capabilities {
   let _maxVertexUniformVectors: number | undefined
 
@@ -6,7 +8,7 @@ export namespace Capabilities {
     if (_maxVertexUniformVectors !== undefined) {
       return _maxVertexUniformVectors
     }
-    const gl = renderer.gl
+    const gl = getGlContext(renderer)
     _maxVertexUniformVectors = <number>gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS)
     return _maxVertexUniformVectors
   }
@@ -14,31 +16,34 @@ export namespace Capabilities {
   let _isFloatTextureSupported: boolean | undefined
 
   export function isFloatingPointTextureSupported(renderer: Renderer) {
-    if (renderer.context.webGLVersion === 2) {
+    const context = (<WebGLRenderer>renderer).context
+    if (context.webGLVersion === 2) {
       return true
     }
     if (_isFloatTextureSupported !== undefined) {
       return _isFloatTextureSupported
     }
-    const gl = renderer.gl
-    _isFloatTextureSupported = !!gl.getExtension("OES_texture_float")
+    // v8 already probes and exposes this extension on the context system;
+    // no need to call gl.getExtension ourselves.
+    _isFloatTextureSupported = !!context.extensions.floatTexture
     return _isFloatTextureSupported
   }
 
   let _isHalfFloatFramebufferSupported: boolean | undefined
 
   export function isHalfFloatFramebufferSupported(renderer: Renderer) {
-    if (renderer.context.webGLVersion === 2) {
+    const context = (<WebGLRenderer>renderer).context
+    if (context.webGLVersion === 2) {
       return true
     }
     if (_isHalfFloatFramebufferSupported !== undefined) {
       return _isHalfFloatFramebufferSupported
     }
-    const gl = renderer.gl
-    const ext = gl.getExtension("OES_texture_half_float")
+    const ext = context.extensions.textureHalfFloat
     if (!ext) {
       return false
     }
+    const gl = getGlContext(renderer)
     const texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, ext.HALF_FLOAT_OES, null)
@@ -53,17 +58,17 @@ export namespace Capabilities {
   let _isFloatFramebufferSupported: boolean | undefined
 
   export function isFloatFramebufferSupported(renderer: Renderer) {
-    if (renderer.context.webGLVersion === 2) {
+    const context = (<WebGLRenderer>renderer).context
+    if (context.webGLVersion === 2) {
       return true
     }
     if (_isFloatFramebufferSupported !== undefined) {
       return _isFloatFramebufferSupported
     }
-    const gl = renderer.gl
-    const ext = gl.getExtension("OES_texture_float")
-    if (!ext) {
+    if (!context.extensions.floatTexture) {
       return false
     }
+    const gl = getGlContext(renderer)
     const texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.FLOAT, null)
@@ -81,16 +86,20 @@ export namespace Capabilities {
     if (_isFloatLinearSupported !== undefined) {
       return _isFloatLinearSupported
     }
-    const gl = renderer.gl
-    _isFloatLinearSupported = gl.getExtension("OES_texture_float_linear") !== null
+    const context = (<WebGLRenderer>renderer).context
+    _isFloatLinearSupported = !!context.extensions.floatTextureLinear
     return _isFloatLinearSupported
   }
 
   export function isShaderTextureLodSupported(renderer: Renderer) {
-    if (renderer.context.webGLVersion === 2) {
+    const context = (<WebGLRenderer>renderer).context
+    if (context.webGLVersion === 2) {
       return true
     }
-    return renderer.gl.getExtension("EXT_shader_texture_lod") !== null
+    // v8's WebGLExtensions map doesn't carry EXT_shader_texture_lod (it's
+    // niche and unused elsewhere in v8 core), so this one still queries gl
+    // directly rather than a context.extensions field.
+    return getGlContext(renderer).getExtension("EXT_shader_texture_lod") !== null
   }
 
   let _isInstancingSupported: boolean | undefined
@@ -99,8 +108,11 @@ export namespace Capabilities {
     if (_isInstancingSupported !== undefined) {
       return _isInstancingSupported
     }
-    const gl = renderer.gl
-    _isInstancingSupported = gl.getExtension("ANGLE_instanced_arrays") !== undefined
+    const context = (<WebGLRenderer>renderer).context
+    // WebGL2 (v8's default/preferred context) has instancing in core, no
+    // extension needed; v7's ANGLE_instanced_arrays check only applied to
+    // WebGL1 fallback.
+    _isInstancingSupported = context.webGLVersion === 2 || !!context.extensions.vertexAttribDivisorANGLE
     return _isInstancingSupported
   }
 }
