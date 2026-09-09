@@ -1,5 +1,4 @@
-import { State, Renderer } from "@pixi/core"
-import { BLEND_MODES } from "@pixi/constants"
+import { State, Renderer, BLEND_MODES } from "pixi.js"
 import { ShadowShader } from "./shadow-shader"
 import { Mesh3D } from "../mesh/mesh"
 import { ShadowCastingLight } from "./shadow-casting-light"

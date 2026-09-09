@@ -1,5 +1,4 @@
-import { ObservablePoint } from "@pixi/math"
-import type { InteractionEvent } from "@pixi/interaction"
+import { ObservablePoint, InteractionEvent } from "pixi.js"
 import { Compatibility } from "../compatibility/compatibility"
 import { Quat } from "../math/quat"
 import { Vec3 } from "../math/vec3"

@@ -1,8 +1,4 @@
-import type { Renderer, RenderTexture } from "@pixi/core"
-import type { InteractionManager } from "@pixi/interaction"
-import type { DisplayObject } from "@pixi/display"
-import type { AssetsClass } from "@pixi/assets"
-
+import { Renderer, RenderTexture, InteractionManager, DisplayObject, AssetsClass } from "pixi.js"
 export interface CompatibilityVersion {
   get assets(): AssetsClass | undefined
   getInteractionPlugin(renderer: Renderer): InteractionManager | undefined

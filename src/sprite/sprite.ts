@@ -1,7 +1,4 @@
-import { Renderer, Texture, Resource } from "@pixi/core"
-import { IDestroyOptions } from "@pixi/display"
-import { BLEND_MODES } from "@pixi/constants"
-import { ObservablePoint } from "@pixi/math"
+import { Renderer, Texture, Resource, DestroyOptions, BLEND_MODES, ObservablePoint } from "pixi.js"
 import { Camera } from "../camera/camera"
 import { Mat4 } from "../math/mat4"
 import { Vec3 } from "../math/vec3"
@@ -84,7 +81,7 @@ export class Sprite3D extends Container3D {
   /**
    * Destroys this sprite and optionally its texture and children.
    */
-  destroy(options?: boolean | IDestroyOptions) {
+  destroy(options?: boolean | DestroyOptions) {
     super.destroy(options)
     this._sprite.destroy(options)
   }

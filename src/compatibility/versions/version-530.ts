@@ -1,11 +1,6 @@
-import { Renderer, RenderTexture } from "@pixi/core"
-import type { InteractionManager } from "@pixi/interaction"
-import type { DisplayObject } from "@pixi/display"
+import { Renderer, RenderTexture, InteractionManager, DisplayObject, AssetsClass, Loader, LoaderResource } from "pixi.js"
 import { CompatibilityVersion, LoaderResourceResponseType } from "../compatibility-version"
-import type { AssetsClass } from "@pixi/assets"
-
 // #if _PIXI_COMPATIBILITY_LOADERS
-import { Loader, LoaderResource } from "@pixi/loaders"
 // #endif
 
 export class Version530 implements CompatibilityVersion {

@@ -1,7 +1,4 @@
-import { RenderTexture, Renderer } from "@pixi/core"
-import { DisplayObject, IDestroyOptions } from "@pixi/display"
-import { Sprite } from "@pixi/sprite"
-import { Ticker } from "@pixi/ticker"
+import { RenderTexture, Renderer, DisplayObject, DestroyOptions, Sprite, Ticker } from "pixi.js"
 import { Compatibility } from "../compatibility/compatibility"
 import { CompositeSpriteOptions } from "./composite-sprite-options"
 
@@ -66,7 +63,7 @@ export class CompositeSprite extends Sprite {
       this._renderTexture.width, this._renderTexture.height, true)
   }
 
-  destroy(options?: boolean | IDestroyOptions) {
+  destroy(options?: boolean | DestroyOptions) {
     Ticker.shared.remove(this._tickerRender); super.destroy(options)
   }
 

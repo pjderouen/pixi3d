@@ -1,4 +1,4 @@
-import { IHitArea } from "@pixi/interaction"
+import { IHitArea } from "pixi.js"
 import { PickingInteraction } from "./picking-interaction"
 import { Mesh3D } from "../mesh/mesh"
 import { Model } from "../model"

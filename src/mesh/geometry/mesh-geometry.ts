@@ -1,4 +1,4 @@
-import { Geometry } from "@pixi/core"
+import { Geometry } from "pixi.js"
 import { MeshShader } from "../mesh-shader"
 import { MeshGeometryAttribute } from "./mesh-geometry-attribute"
 import { MeshGeometryTarget } from "./mesh-geometry-target"

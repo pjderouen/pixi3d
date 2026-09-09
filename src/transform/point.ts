@@ -1,4 +1,4 @@
-import { ObservablePoint, IPoint } from "@pixi/math"
+import { ObservablePoint, IPoint } from "pixi.js"
 import { Vec3 } from "../math/vec3"
 import { Matrix4x4 } from "./matrix"
 import { Quaternion } from "./quaternion"

@@ -1,5 +1,4 @@
-import { DRAW_MODES, BLEND_MODES } from "@pixi/constants"
-import { State, Renderer, Program } from "@pixi/core"
+import { DRAW_MODES, BLEND_MODES, State, Renderer, Program } from "pixi.js"
 import { Mesh3D } from "../mesh/mesh"
 import { MaterialRenderSortType } from "./material-render-sort-type"
 import { MeshShader } from "../mesh/mesh-shader"

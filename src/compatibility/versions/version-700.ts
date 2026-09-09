@@ -1,13 +1,10 @@
 import * as PixiCore from "@pixi/core"
-import type { InteractionManager } from "@pixi/interaction"
-import type { Renderer } from "@pixi/core"
+import { InteractionManager, Renderer, AssetsClass, Assets } from "pixi.js"
 import { CompatibilityAccess } from "../compatibility-access"
-import type { AssetsClass } from "@pixi/assets"
 import { Version650 } from "./version-650"
 import { LoaderResourceResponseType } from "../compatibility-version"
 
 // #if _PIXI_COMPATIBILITY_ASSETS
-import { Assets } from "@pixi/assets"
 // #endif
 
 export class Version700 extends Version650 {

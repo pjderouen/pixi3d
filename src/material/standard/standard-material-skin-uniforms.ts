@@ -1,5 +1,4 @@
-import { Shader } from "@pixi/core"
-
+import { Shader } from "pixi.js"
 import { Mesh3D } from "../../mesh/mesh"
 import { StandardMaterialMatrixTexture } from "./standard-material-matrix-texture"
 

@@ -1,4 +1,4 @@
-import { Renderer, IRendererPlugin } from "@pixi/core"
+import { Renderer, IRendererPlugin } from "pixi.js"
 import { Compatibility } from "../compatibility/compatibility"
 import { ImageBasedLighting } from "./image-based-lighting"
 import { Light } from "./light"

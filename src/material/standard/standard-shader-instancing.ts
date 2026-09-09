@@ -1,5 +1,4 @@
-import { Buffer, Geometry } from "@pixi/core"
-
+import { Buffer, Geometry } from "pixi.js"
 import { InstancedMesh3D } from "../../mesh/instanced-mesh"
 import { InstancedStandardMaterial } from "./instanced-standard-material"
 

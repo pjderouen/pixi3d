@@ -1,5 +1,4 @@
-import type { DisplayObject } from "@pixi/display"
-import type { Renderer, RenderTexture } from "@pixi/core"
+import { DisplayObject, Renderer, RenderTexture } from "pixi.js"
 import { Version530 } from "./version-530"
 
 export class Version600 extends Version530 {

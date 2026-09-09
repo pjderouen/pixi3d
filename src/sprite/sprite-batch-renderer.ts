@@ -1,5 +1,4 @@
-import { Renderer, BatchShaderGenerator, IBatchableElement, ViewableBuffer } from "@pixi/core"
-import { premultiplyTint } from "@pixi/utils"
+import { Renderer, BatchShaderGenerator, BatchableElement, ViewableBuffer, premultiplyTint } from "pixi.js"
 import { SpriteBatchGeometry } from "./sprite-batch-geometry"
 import { Shader as Vertex } from "./shader/sprite.vert"
 import { Shader as Fragment } from "./shader/sprite.frag"
@@ -23,7 +22,7 @@ export class SpriteBatchRenderer extends BatchRenderer {
     })
   }
 
-  packInterleavedGeometry(element: IBatchableElement, attributeBuffer: ViewableBuffer, indexBuffer: Uint16Array, aIndex: number, iIndex: number) {
+  packInterleavedGeometry(element: BatchableElement, attributeBuffer: ViewableBuffer, indexBuffer: Uint16Array, aIndex: number, iIndex: number) {
     const { uint32View, float32View } = attributeBuffer
     const packedVertices = aIndex / this.vertexSize
     const uvs = element.uvs

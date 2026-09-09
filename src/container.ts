@@ -1,5 +1,4 @@
-import { Container } from '@pixi/display';
-
+import { Container } from "pixi.js"
 import { Quaternion } from "./transform/quaternion"
 import { Transform3D } from "./transform/transform"
 import { Point3D } from "./transform/point"

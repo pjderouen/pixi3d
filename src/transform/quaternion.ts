@@ -1,4 +1,4 @@
-import { ObservablePoint, IPoint } from "@pixi/math"
+import { ObservablePoint, IPoint } from "pixi.js"
 import { Quat } from "../math/quat"
 
 const temp = new Float32Array(4)

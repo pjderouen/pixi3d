@@ -1,5 +1,4 @@
-import type { ILoaderResource } from "@pixi/loaders"
-
+import { ILoaderResource } from "pixi.js"
 /**
  * Represents a loader for glTF asset resources (buffers and images).
  */

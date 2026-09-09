@@ -1,7 +1,5 @@
-import { settings } from "@pixi/settings"
-import { Texture } from "@pixi/core"
+import { settings, Texture, LoaderResource } from "pixi.js"
 import { glTFResourceLoader } from "./gltf-resource-loader"
-import type { LoaderResource } from "@pixi/loaders"
 import { Compatibility } from "../compatibility/compatibility"
 
 /**

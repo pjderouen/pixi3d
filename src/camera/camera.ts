@@ -1,6 +1,4 @@
-import { IPointData, Point, ObservablePoint, DEG_TO_RAD } from "@pixi/math"
-import { Renderer } from "@pixi/core"
-import { IDestroyOptions } from "@pixi/display"
+import { PointData, Point, ObservablePoint, DEG_TO_RAD, Renderer, DestroyOptions } from "pixi.js"
 import { Container3D } from "../container"
 import { Mat4 } from "../math/mat4"
 import { Ray } from "../math/ray"
@@ -44,7 +42,7 @@ export class Camera extends Container3D implements TransformId {
     return this._obliqueness
   }
 
-  set obliqueness(value: IPointData) {
+  set obliqueness(value: PointData) {
     this._obliqueness.copyFrom(value)
   }
 
@@ -88,7 +86,7 @@ export class Camera extends Container3D implements TransformId {
     this.transform.rotationQuaternion.setEulerAngles(0, 180, 0)
   }
 
-  destroy(options?: boolean | IDestroyOptions) {
+  destroy(options?: boolean | DestroyOptions) {
     super.destroy(options)
     if (this === Camera.main) {
       // @ts-ignore It's ok, main camera was destroyed.

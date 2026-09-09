@@ -1,6 +1,4 @@
-import type { Loader } from "@pixi/loaders"
-import { settings } from "@pixi/settings"
-import { Texture } from "@pixi/core"
+import { Loader, settings, Texture } from "pixi.js"
 import { Cubemap } from "../cubemap/cubemap"
 import { CubemapFaces } from "../cubemap/cubemap-faces"
 import { LoaderResourceResponseType } from "../compatibility/compatibility-version"

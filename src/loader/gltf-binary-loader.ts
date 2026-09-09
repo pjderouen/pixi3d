@@ -1,4 +1,4 @@
-import type { ILoaderResource } from "@pixi/loaders"
+import { ILoaderResource } from "pixi.js"
 import { glTFAsset } from "../gltf/gltf-asset"
 import { Compatibility } from "../compatibility/compatibility"
 import { LoaderResourceResponseType } from "../compatibility/compatibility-version"

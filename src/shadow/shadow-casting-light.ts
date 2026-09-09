@@ -1,4 +1,4 @@
-import { RenderTexture, Renderer } from "@pixi/core"
+import { RenderTexture, Renderer } from "pixi.js"
 import { Light } from "../lighting/light"
 import { LightType } from "../lighting/light-type"
 import { Camera } from "../camera/camera"

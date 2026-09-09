@@ -1,4 +1,4 @@
-import { BaseTexture } from "@pixi/core"
+import { BaseTexture } from "pixi.js"
 import { StandardMaterialTexture } from "./standard-material-texture"
 
 /**

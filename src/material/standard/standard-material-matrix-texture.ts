@@ -1,6 +1,5 @@
 import { BufferResource } from "../../compatibility/buffer-resource"
-import { MIPMAP_MODES, WRAP_MODES, SCALE_MODES, FORMATS, TYPES, ALPHA_MODES } from "@pixi/constants"
-import { Texture, Renderer, BaseTexture } from "@pixi/core"
+import { MIPMAP_MODES, WRAP_MODES, SCALE_MODES, FORMATS, TYPES, ALPHA_MODES, Texture, Renderer, BaseTexture } from "pixi.js"
 import { Capabilities } from "../../capabilities"
 
 export class StandardMaterialMatrixTexture extends Texture {

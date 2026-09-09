@@ -1,4 +1,4 @@
-import { ObjectRenderer, Renderer } from "@pixi/core"
+import { ObjectRenderer, Renderer } from "pixi.js"
 import { MaterialRenderPass } from "./material-render-pass"
 import { Mesh3D } from "../mesh/mesh"
 import { ShadowRenderPass } from "../shadow/shadow-render-pass"

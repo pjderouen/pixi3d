@@ -1,6 +1,4 @@
-import { Texture, BaseTexture } from "@pixi/core"
-import { ALPHA_MODES, WRAP_MODES } from "@pixi/constants"
-
+import { Texture, BaseTexture, ALPHA_MODES, WRAP_MODES } from "pixi.js"
 import { glTFChannel } from "./animation/gltf-channel"
 import { glTFAsset } from "./gltf-asset"
 import { glTFAnimation } from "./animation/gltf-animation"

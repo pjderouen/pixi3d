@@ -1,4 +1,4 @@
-import { Buffer, Geometry } from "@pixi/core"
+import { Buffer, Geometry } from "pixi.js"
 import { InstancedMesh3D } from ".."
 
 export class ShadowShaderInstancing {

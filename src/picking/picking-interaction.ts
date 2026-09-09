@@ -1,6 +1,4 @@
-import { Ticker, UPDATE_PRIORITY } from "@pixi/ticker"
-import { IRendererPlugin, Renderer } from "@pixi/core"
-import { Point } from "@pixi/math"
+import { Ticker, UPDATE_PRIORITY, IRendererPlugin, Renderer, Point } from "pixi.js"
 import { PickingMap } from "./picking-map"
 import { PickingHitArea } from "./picking-hitarea"
 import { Compatibility } from "../compatibility/compatibility"

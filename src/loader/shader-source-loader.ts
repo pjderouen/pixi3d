@@ -1,7 +1,6 @@
 import { Compatibility } from "../compatibility/compatibility"
 import { LoaderResourceResponseType } from "../compatibility/compatibility-version"
-import { settings } from "@pixi/settings"
-
+import { settings } from "pixi.js"
 const EXTENSIONS = ["glsl", "vert", "frag"]
 
 export const ShaderSourceLoader = {
