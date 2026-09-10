@@ -1,4 +1,5 @@
-import { Renderer, Shader, DEG_TO_RAD } from "pixi.js"
+import { WebGLRenderer, DEG_TO_RAD } from "pixi.js"
+import { MeshShader } from "../../mesh/mesh-shader"
 import { LightType } from "../../lighting/light-type"
 import { StandardMaterialFeatureSet } from "./standard-material-feature-set"
 import { StandardShader } from "./standard-shader"
@@ -237,7 +238,7 @@ export class StandardMaterial extends Material {
     return new StandardMaterialFactory().create(source)
   }
 
-  render(mesh: Mesh3D, renderer: Renderer) {
+  render(mesh: Mesh3D, renderer: WebGLRenderer) {
     if (!this._instancingEnabled && mesh.instances.length > 0) {
       // Invalidate shader when instancing was enabled.
       this.invalidateShader()
@@ -266,15 +267,7 @@ export class StandardMaterial extends Material {
     return new InstancedStandardMaterial(this)
   }
 
-  createShader(mesh: Mesh3D, renderer: Renderer) {
-    if (renderer.context.webGLVersion === 1) {
-      let extensions = ["EXT_shader_texture_lod", "OES_standard_derivatives"]
-      for (let ext of extensions) {
-        if (!renderer.gl.getExtension(ext)) {
-          // Log warning?
-        }
-      }
-    }
+  createShader(mesh: Mesh3D, renderer: WebGLRenderer) {
     let lightingEnvironment = this.lightingEnvironment || LightingEnvironment.main
     let features = StandardMaterialFeatureSet.build(renderer, mesh, mesh.geometry, this, lightingEnvironment)
     if (!features) {
@@ -292,11 +285,11 @@ export class StandardMaterial extends Material {
     return shaders[checksum]
   }
 
-  updateUniforms(mesh: Mesh3D, shader: Shader) {
+  updateUniforms(mesh: Mesh3D, shader: MeshShader) {
     for (let i = 0; i < 3; i++) {
       this._baseColorFactor[i] = this.baseColor.rgba[i]
     }
-    this._baseColorFactor[3] = this.baseColor.a * mesh.worldAlpha
+    this._baseColorFactor[3] = this.baseColor.a * mesh.groupAlpha
     let camera = this.camera || Camera.main
     if (mesh.skin) {
       this._skinUniforms.update(mesh, shader)
@@ -324,6 +317,7 @@ export class StandardMaterial extends Material {
       }
     }
     let lightingEnvironment = this.lightingEnvironment || LightingEnvironment.main
+    lightingEnvironment.updateLightTransforms()
     for (let i = 0; i < lightingEnvironment.lights.length; i++) {
       let light = lightingEnvironment.lights[i]
       let type = 0

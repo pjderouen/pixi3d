@@ -1,4 +1,4 @@
-import { ObservablePoint, IPoint } from "pixi.js"
+import { PointData } from "pixi.js"
 import { Vec3 } from "../math/vec3"
 import { Matrix4x4 } from "./matrix"
 import { Quaternion } from "./quaternion"
@@ -7,9 +7,21 @@ const temp = new Float32Array(3)
 
 /**
  * Represents a point in 3D space.
+ *
+ * Up to PixiJS v7 this extended `ObservablePoint`. v8's ObservablePoint
+ * gained `magnitude()`/`normalize()` methods (math-extras) that collide
+ * with this class's long-standing `magnitude` getter and `normalize(out)`,
+ * so Point3D is now standalone; it still has the `x`/`y` shape of
+ * `PointData` and notifies its owner through the same callback + scope.
  */
-export class Point3D extends ObservablePoint implements IPoint3DData {
+export class Point3D implements IPoint3DData, PointData {
   private _array = new Float32Array(3)
+
+  /** The callback invoked when the point changes. */
+  cb: () => void
+
+  /** The owner of the callback. */
+  scope: any
 
   /** Array containing the x, y, z values. */
   get array() {
@@ -29,7 +41,8 @@ export class Point3D extends ObservablePoint implements IPoint3DData {
    * @param scope The owner of callback.
    */
   constructor(x = 0, y = 0, z = 0, cb: () => void = () => { }, scope: any = undefined) {
-    super(cb, scope)
+    this.cb = cb
+    this.scope = scope
     this._array.set([x, y, z])
   }
 
@@ -89,7 +102,7 @@ export class Point3D extends ObservablePoint implements IPoint3DData {
     return this
   }
 
-  copyTo<T extends IPoint>(p: T) {
+  copyTo<T extends PointData>(p: T) {
     if (p instanceof Point3D) {
       p.set(this.x, this.y, this.z)
     }

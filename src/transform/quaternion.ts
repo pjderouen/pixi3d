@@ -1,13 +1,20 @@
-import { ObservablePoint, IPoint } from "pixi.js"
+import { PointData } from "pixi.js"
 import { Quat } from "../math/quat"
 
 const temp = new Float32Array(4)
 
 /**
- * Represents a rotation quaternion in 3D space.
+ * Represents a rotation quaternion in 3D space. Standalone since the v8 port
+ * for the same reason as `Point3D` (see point.ts).
  */
-export class Quaternion extends ObservablePoint {
+export class Quaternion {
   private _array = new Float32Array(4)
+
+  /** The callback invoked when the quaternion changes. */
+  cb: () => void
+
+  /** The owner of the callback. */
+  scope: any
 
   /** Array containing the x, y, z, w values. */
   get array() {
@@ -28,7 +35,8 @@ export class Quaternion extends ObservablePoint {
    * @param scope The owner of callback.
    */
   constructor(x = 0, y = 0, z = 0, w = 1, cb: () => void = () => { }, scope: any = undefined) {
-    super(cb, scope)
+    this.cb = cb
+    this.scope = scope
     this._array.set([x, y, z, w])
   }
 
@@ -118,7 +126,7 @@ export class Quaternion extends ObservablePoint {
    * Copies x, y, z and w into the given quaternion.
    * @param p The quaternion to copy to.
    */
-  copyTo<T extends IPoint>(p: T) {
+  copyTo<T extends PointData>(p: T) {
     if (p instanceof Quaternion) {
       p.set(this.x, this.y, this.z, this.w)
     }

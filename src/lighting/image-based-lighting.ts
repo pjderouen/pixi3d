@@ -1,7 +1,26 @@
-import { Texture, MIPMAP_MODES } from "pixi.js"
+import { Texture, ImageSource } from "pixi.js"
 import { Cubemap } from "../cubemap/cubemap"
 
 import png from "./assets/lut-ggx.png"
+
+/**
+ * Creates a texture from an inline (data URL) image. PixiJS v8's
+ * `Texture.from` no longer loads from a URL; until the image has decoded the
+ * texture reports its size as 0x0, which the renderer skips, and it is
+ * resized and re-uploaded on load.
+ */
+function textureFromDataUrl(url: string) {
+  const image = new Image()
+  const source = new ImageSource({
+    resource: image, autoGenerateMipmaps: false, alphaMode: "no-premultiply-alpha"
+  })
+  image.onload = () => {
+    source.resize(image.naturalWidth, image.naturalHeight)
+    source.update()
+  }
+  image.src = url
+  return new Texture({ source })
+}
 
 /**
  * Collection of components used for image-based lighting (IBL), a
@@ -11,11 +30,15 @@ import png from "./assets/lut-ggx.png"
 export class ImageBasedLighting {
   private _diffuse: Cubemap
   private _specular: Cubemap
+  private static _defaultLookupBrdf?: Texture
 
   /** The default BRDF integration map lookup texture. */
-  static defaultLookupBrdf = Texture.from(png, {
-    mipmap: MIPMAP_MODES.OFF
-  })
+  static get defaultLookupBrdf() {
+    if (!this._defaultLookupBrdf) {
+      this._defaultLookupBrdf = textureFromDataUrl(png)
+    }
+    return this._defaultLookupBrdf
+  }
 
   /** Cube texture used for the diffuse component. */
   get diffuse() {
@@ -44,7 +67,6 @@ export class ImageBasedLighting {
    * Value indicating if this object is valid to be used for rendering.
    */
   get valid() {
-    return this._diffuse.valid &&
-      this._specular.valid && (!this.lookupBrdf || this.lookupBrdf.valid)
+    return this._diffuse.valid && this._specular.valid
   }
 }

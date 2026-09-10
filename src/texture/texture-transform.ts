@@ -32,20 +32,20 @@ export class TextureTransform {
   }
 
   /** The offset for the texture coordinates. */
-  offset = new ObservablePoint(() => {
+  offset = new ObservablePoint({ _onUpdate: () => {
     this._translation.set([
       1, 0, 0, 0, 1, 0, this.offset.x, this.offset.y, 1
     ])
     this._dirty = true
-  }, undefined)
+  } })
 
   /** The scale of the texture coordinates. */
-  scale = new ObservablePoint(() => {
+  scale = new ObservablePoint({ _onUpdate: () => {
     this._scaling.set([
       this.scale.x, 0, 0, 0, this.scale.y, 0, 0, 0, 1
     ])
     this._dirty = true
-  }, undefined, 1, 1)
+  } }, 1, 1)
 
   /** The matrix array. */
   get array() {

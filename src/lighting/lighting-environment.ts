@@ -1,14 +1,14 @@
-import { Renderer, IRendererPlugin } from "pixi.js"
+import { Renderer } from "pixi.js"
 import { Compatibility } from "../compatibility/compatibility"
 import { ImageBasedLighting } from "./image-based-lighting"
 import { Light } from "./light"
 import { Fog } from "./fog"
 
 /**
- * A lighting environment represents the different lighting conditions for a 
+ * A lighting environment represents the different lighting conditions for a
  * specific object or an entire scene.
  */
-export class LightingEnvironment implements IRendererPlugin {
+export class LightingEnvironment {
   /** The image-based lighting object. */
   imageBasedLighting?: ImageBasedLighting
 
@@ -26,19 +26,21 @@ export class LightingEnvironment implements IRendererPlugin {
    * @param imageBasedLighting The image based lighting to use.
    */
   constructor(public renderer: Renderer, imageBasedLighting?: ImageBasedLighting) {
-    this.renderer.on("prerender", () => {
-      for (let light of this.lights) {
-        // Make sure the transform has been updated in the case where the light
-        // is not part of the stage hierarchy.
-        if (!light.parent) {
-          light.transform.updateTransform()
-        }
-      }
-    })
     if (!LightingEnvironment.main) {
       LightingEnvironment.main = this
     }
     this.imageBasedLighting = imageBasedLighting
+  }
+
+  /**
+   * Makes sure every light's transform is current before it is read into
+   * uniforms; a light that isn't part of the stage hierarchy is never
+   * updated by anything else.
+   */
+  updateLightTransforms() {
+    for (let light of this.lights) {
+      light.updateTransform3D()
+    }
   }
 
   destroy() {
@@ -50,4 +52,4 @@ export class LightingEnvironment implements IRendererPlugin {
   }
 }
 
-Compatibility.installRendererPlugin("lighting", LightingEnvironment)
+Compatibility.installRendererSystem("lighting", LightingEnvironment)
