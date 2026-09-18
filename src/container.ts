@@ -48,6 +48,30 @@ export class Container3D extends Container {
     return this.transform.rotationQuaternion
   }
 
+  // PixiJS v8's own `x` and `y` accessors read and write its 2D `_position`
+  // directly rather than going through `position`, so without these the 3D
+  // position would silently ignore `container.x = 1`.
+
+  /** The position of the object on the x axis relative to the local
+   * coordinates of the parent. */
+  get x() {
+    return this.transform.position.x
+  }
+
+  set x(value: number) {
+    this.transform.position.x = value
+  }
+
+  /** The position of the object on the y axis relative to the local
+   * coordinates of the parent. */
+  get y() {
+    return this.transform.position.y
+  }
+
+  set y(value: number) {
+    this.transform.position.y = value
+  }
+
   /** The position of the object on the z axis relative to the local
    * coordinates of the parent. */
   get z() {

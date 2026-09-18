@@ -1,5 +1,3 @@
-/// <reference types="@pixi/mixin-get-child-by-name" />
-
 export { glTFLoader } from "./loader/gltf-loader"
 export { glTFBinaryLoader } from "./loader/gltf-binary-loader"
 export { glTFAsset } from "./gltf/gltf-asset"

@@ -1,34 +1,39 @@
-import { Renderer, RenderTexture, SCALE_MODES, TYPES } from "pixi.js"
+import { RenderTexture, WebGLRenderer } from "pixi.js"
+import type { SCALE_MODE, TEXTURE_FORMATS } from "pixi.js"
 import { Capabilities } from "../capabilities"
 import { ShadowQuality } from "./shadow-quality"
 
 export namespace ShadowTexture {
-  export function create(renderer: Renderer, size: number, quality: ShadowQuality) {
-    let type = getSupportedType(renderer, quality)
+  export function create(renderer: WebGLRenderer, size: number, quality: ShadowQuality) {
     return RenderTexture.create({
-      width: size, height: size, type: type, scaleMode: getSupportedScaleMode(renderer)
+      width: size,
+      height: size,
+      resolution: 1,
+      format: getSupportedFormat(renderer, quality),
+      scaleMode: getSupportedScaleMode(renderer),
+      autoGenerateMipmaps: false,
     })
   }
 
-  function getSupportedScaleMode(renderer: Renderer) {
+  function getSupportedScaleMode(renderer: WebGLRenderer): SCALE_MODE {
     if (Capabilities.supportsFloatLinear(renderer)) {
-      return SCALE_MODES.LINEAR
+      return "linear"
     }
-    return SCALE_MODES.NEAREST
+    return "nearest"
   }
 
-  function getSupportedType(renderer: Renderer, quality: ShadowQuality) {
+  function getSupportedFormat(renderer: WebGLRenderer, quality: ShadowQuality): TEXTURE_FORMATS {
     if (quality === ShadowQuality.high) {
       if (Capabilities.isFloatFramebufferSupported(renderer)) {
-        return TYPES.FLOAT
+        return "rgba32float"
       }
       if (Capabilities.isHalfFloatFramebufferSupported(renderer)) {
-        return TYPES.HALF_FLOAT
+        return "rgba16float"
       }
     }
     if (quality === ShadowQuality.medium && Capabilities.isHalfFloatFramebufferSupported(renderer)) {
-      return TYPES.HALF_FLOAT
+      return "rgba16float"
     }
-    return TYPES.UNSIGNED_BYTE
+    return "rgba8unorm"
   }
 }
