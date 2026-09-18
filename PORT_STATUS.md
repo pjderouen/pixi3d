@@ -37,6 +37,9 @@ difference, it is the smallest possible one and is written down.
     non-premultiplied texture and its own pixels per unit; and a
     `CompositeSprite` rendering a model that is not on the stage, at half
     resolution, with a blur filter.
+- **API parity:** every export and member of Pixi3D 2.5.0 is present, except
+  where PixiJS v8 forces a difference; each of those is in
+  [MIGRATION_V8.md](MIGRATION_V8.md). See "API parity audit" below.
 - **Not verified yet:** picking, the skybox, animation, skinning, morphing,
   instancing, the WebGL1 path, and the upstream snapshot test suite.
 
@@ -71,40 +74,47 @@ Each of these type-checked cleanly and still drew the wrong thing.
 - **A sprite's quad comes from `visualBounds`**, which includes the texture
   trim; v8's `bounds` does not.
 
-## Differences from 2.5.0 so far
+## API parity audit
 
-For the migration note (step 1 below); each is forced by v8.
+2.5.0 never committed its generated `types/`, so the audit compared sources:
+a script walked every export of `src/index.ts` at `v2.5.0` and now (69 each)
+with the TypeScript parser, listing each class, interface, enum and
+namespace member that is not private, with its parameters, and diffed the
+two. Every 2.5.0 export is present. Restored where the port had changed
+something without need:
 
-- **`Point3D.magnitude` is a method**, `magnitude()`. `Point3D` and
-  `Quaternion` extend `ObservablePoint` again, as they did in 2.5.0, so a
+- `Point3D` and `Quaternion` extend `ObservablePoint` again, so a
   `Container3D` is a `Container` to TypeScript and `stage.addChild(model)`
-  type-checks. v8's typings declare math-extras' `magnitude()` method on every
-  `ObservablePoint`, and a getter cannot satisfy it. `normalize` keeps its
-  2.5.0 signature through an overload.
-- **`SpriteBatchRenderer` is a v8 `Batcher`**: `render(sprites)` draws a
-  sorted list of sprites. v7's object renderer API (`start`, `render(sprite)`,
-  `flush`, `stop`) has no v8 equivalent.
-- **`StandardPipeline` is a render pipe**, reached as
-  `renderer.renderPipes.pipeline` rather than `renderer.plugins.pipeline`,
-  and no longer extends `ObjectRenderer`.
-- **`CompositeSpriteOptions.objectToRender` is a `Container`**; v8 has no
-  `DisplayObject`.
-- **`Sprite3D.blendMode` takes v8's blend mode names** (`"normal"`, `"add"`,
-  ...). It is `"normal"` by default, as it was, and does not inherit from the
-  containers above the sprite.
-- **Rounding a sprite's corners (`roundPixels`) uses the renderer's
-  resolution**; v7 used the global `settings.RESOLUTION`, which v8 does not
-  have.
+  type-checks without a cast. The one cost, `magnitude()` becoming a method,
+  is forced by v8's typings (see the migration note).
+- `Container3D.localTransform` is the 3D matrix again (the port had renamed
+  it `localTransform3D`). v8 declares the property as a field, so the
+  accessor is defined on the prototype; v8 writes its 2D transform into the
+  matrix's 2D fields.
+- `Container3D.updateTransform()` updates the 3D world transforms of the
+  object, its ancestors and its visible descendants, as in 2.5.0. Without
+  this, v8's `Container.updateTransform(opts)` threw when called without
+  options and, with them, set z to x through `Point3D.set(x, y)`.
+- `StandardPipeline.render(object)` and `flush()`; `execute` now uses them.
+- `glTFResourceLoader.load(uri, onComplete)`, beside the promise-based
+  `loadBuffer` and `loadTexture`.
+- `ImageBasedLighting.defaultLookupBrdf` can be assigned again.
+- The renderer systems and pipe are typed through PixiJS' `PixiMixins`, so
+  `renderer.renderPipes.pipeline` and `renderer.camera` need no cast, as
+  `renderer.plugins.*` needed none on v7.
+
+A throwaway TypeScript file written the way 2.5.0 code is (adding models to
+the stage, `renderer.renderPipes.pipeline`, a 2.5.0-style resource loader)
+compiled without errors against the port, and failed on a deliberate type
+error. The differences that remain are forced by v8 and are all in
+[MIGRATION_V8.md](MIGRATION_V8.md).
 
 ## What's next, in dependency order
 
-1. API parity audit: diff the 2.5.0 `types/index.d.ts` against the port's and
-   restore anything changed without need; write `MIGRATION_V8.md`, starting
-   from the list above.
-2. Port the puppeteer/pixelmatch suite (`test/`) to v8 and run it against the
+1. Port the puppeteer/pixelmatch suite (`test/`) to v8 and run it against the
    existing v7 snapshots. A snapshot is re-baselined only when the
    difference is shown to come from PixiJS itself.
-3. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
+2. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
    export map goes), built `dist/` and `types/`, and a v8 getting-started in
    the README.
 
@@ -133,7 +143,7 @@ failure otherwise shows only as a mesh that never draws).
 ## Toolchain notes
 
 - The library build (`rollup.build.js`) still targets the old package
-  layout, so `npm run build` does not work yet; see step 3 above.
+  layout, so `npm run build` does not work yet; see step 2 above.
 - `typedoc` 0.22 predates the TypeScript 5 this port needs, so the lockfile
   is resolved with legacy peer dependencies until the docs step updates it.
 

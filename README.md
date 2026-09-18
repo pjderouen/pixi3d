@@ -8,7 +8,7 @@ Pixi3D is a 3D rendering library for the web. It's built on top of PixiJS (which
 * Customized materials and shaders
 * 3D sprites
 * Transformation, morphing and skeletal animations
-* This fork: compatible with PixiJS v8, from 8.20 on. For PixiJS v5, v6 and v7, use upstream Pixi3D 2.5.
+* This fork: compatible with PixiJS v8, from 8.20 on. For PixiJS v5, v6 and v7, use upstream Pixi3D 2.5. Coming from Pixi3D 2.5? [MIGRATION_V8.md](MIGRATION_V8.md) lists what changed.
 
 ![SPY-HYPERSPORT](https://github.com/jnsmalm/pixi3d/blob/develop/spy-hypersport.jpg?raw=true)
 

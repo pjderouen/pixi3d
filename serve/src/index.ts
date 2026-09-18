@@ -11,6 +11,7 @@
 // ported yet cannot break the scenes that are.
 import { Application, Assets, BlurFilter, CanvasSource, Texture } from "pixi.js"
 import "../../src/pipeline/standard-pipeline"
+import "../../src/renderer-mixins"
 import "../../src/loader/gltf-loader"
 import "../../src/loader/cubemap-loader"
 import { Mesh3D } from "../../src/mesh/mesh"
@@ -31,7 +32,6 @@ import { Container3D } from "../../src/container"
 import { Sprite3D } from "../../src/sprite/sprite"
 import { SpriteBillboardType } from "../../src/sprite/sprite-billboard-type"
 import { CompositeSprite } from "../../src/sprite/composite-sprite"
-import type { StandardPipeline } from "../../src/pipeline/standard-pipeline"
 import type { glTFAsset } from "../../src/gltf/gltf-asset"
 
 declare global {
@@ -159,7 +159,7 @@ async function demoScene(app: Application) {
   shadowCastingLight.softness = 1
   shadowCastingLight.shadowArea = 15
 
-  const pipeline = <StandardPipeline>(<any>app.renderer.renderPipes).pipeline
+  const pipeline = app.renderer.renderPipes.pipeline
   pipeline.enableShadows(ground, shadowCastingLight)
   pipeline.enableShadows(model, shadowCastingLight)
 }

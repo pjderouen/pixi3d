@@ -137,18 +137,42 @@ export class StandardPipeline {
    * @param instruction The instruction to execute.
    */
   execute(instruction: PipelineInstruction) {
-    this._meshes = instruction.meshes.filter(mesh => mesh.isRenderable)
+    for (let mesh of instruction.meshes) {
+      if (mesh.isRenderable) {
+        this.render(mesh)
+      }
+    }
+    for (let sprite of instruction.sprites) {
+      if (sprite.isRenderable) {
+        sprite._render(this.renderer)
+        this.render(sprite.projectionSprite)
+      }
+    }
+    this.flush()
+  }
+
+  /**
+   * Adds an object to be rendered by the next `flush`. A sprite's projection
+   * must be up to date (see `Sprite3D._render`).
+   * @param object The object to render.
+   */
+  render(object: Mesh3D | ProjectionSprite) {
+    if (object instanceof ProjectionSprite) {
+      this._sprites.push(object)
+    } else {
+      this._meshes.push(object)
+    }
+  }
+
+  /**
+   * Renders the added objects to the current render target: the meshes with
+   * the render passes, then the sprites.
+   */
+  flush() {
     for (let mesh of this._meshes) {
       mesh.updateTransform3D()
       if (mesh.skin) {
         mesh.skin.calculateJointMatrices()
-      }
-    }
-    this._sprites = []
-    for (let sprite of instruction.sprites) {
-      if (sprite.isRenderable) {
-        sprite._render(this.renderer)
-        this._sprites.push(sprite.projectionSprite)
       }
     }
     this.sort()

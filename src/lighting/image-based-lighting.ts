@@ -32,12 +32,19 @@ export class ImageBasedLighting {
   private _specular: Cubemap
   private static _defaultLookupBrdf?: Texture
 
-  /** The default BRDF integration map lookup texture. */
-  static get defaultLookupBrdf() {
+  /**
+   * The default BRDF integration map lookup texture. Created the first time
+   * it is read, unless replaced before then.
+   */
+  static get defaultLookupBrdf(): Texture {
     if (!this._defaultLookupBrdf) {
       this._defaultLookupBrdf = textureFromDataUrl(png)
     }
     return this._defaultLookupBrdf
+  }
+
+  static set defaultLookupBrdf(value: Texture) {
+    this._defaultLookupBrdf = value
   }
 
   /** Cube texture used for the diffuse component. */

@@ -1,6 +1,6 @@
 import { Assets, DOMAdapter, ImageSource, Texture } from "pixi.js"
 import type { Loader } from "pixi.js"
-import type { glTFResourceLoader } from "./gltf-resource-loader"
+import type { glTFLoaderResource, glTFResourceLoader } from "./gltf-resource-loader"
 
 /**
  * glTF assets are JSON files plus supporting external data.
@@ -156,7 +156,9 @@ async function loadImages(descriptor: any, buffers: ArrayBuffer[], loader?: glTF
       if (!loader) {
         throw new Error("PIXI3D: A resource loader is required when image is external.")
       }
-      images[index] = await loader.loadTexture(image.uri)
+      images[index] = await (loader.loadTexture
+        ? loader.loadTexture(image.uri)
+        : loadResource(loader, image.uri, (resource) => resource.texture))
     }
   }))
   return images
@@ -177,10 +179,35 @@ async function loadBuffers(descriptor: any, loader?: glTFResourceLoader, start =
       if (!loader) {
         throw new Error("PIXI3D: A resource loader is required when buffer is not embedded.")
       }
-      buffers[index] = await loader.loadBuffer(buffer.uri)
+      buffers[index] = await (loader.loadBuffer
+        ? loader.loadBuffer(buffer.uri)
+        : loadResource(loader, buffer.uri, (resource) => resource.data))
     }
   }))
   return buffers
+}
+
+/**
+ * Loads a resource through a loader's `load` method, the callback form
+ * resource loaders had up to PixiJS v7.
+ * @param loader The resource loader.
+ * @param uri The uri to load from.
+ * @param pick Picks the loaded value from the resource.
+ */
+function loadResource<T>(loader: glTFResourceLoader, uri: string, pick: (resource: glTFLoaderResource) => T | undefined) {
+  return new Promise<T>((resolve, reject) => {
+    if (!loader.load) {
+      reject(new Error(`PIXI3D: The resource loader has no method to load "${uri}".`)); return
+    }
+    loader.load(uri, (resource) => {
+      const value = pick(resource)
+      if (value) {
+        resolve(value)
+      } else {
+        reject(new Error(`PIXI3D: The resource loader failed to load "${uri}".`))
+      }
+    })
+  })
 }
 
 function blobFromBufferView(image: any, descriptor: any, buffers: ArrayBuffer[]) {

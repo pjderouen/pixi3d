@@ -1,7 +1,9 @@
+import "./renderer-mixins"
+
 export { glTFLoader } from "./loader/gltf-loader"
 export { glTFBinaryLoader } from "./loader/gltf-binary-loader"
 export { glTFAsset } from "./gltf/gltf-asset"
-export type { glTFResourceLoader } from "./gltf/gltf-resource-loader"
+export type { glTFResourceLoader, glTFLoaderResource } from "./gltf/gltf-resource-loader"
 export { Point3D } from "./transform/point"
 export { Quaternion } from "./transform/quaternion"
 export { Transform3D } from "./transform/transform"
