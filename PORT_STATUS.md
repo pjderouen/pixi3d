@@ -173,9 +173,13 @@ error. The differences that remain are forced by v8 and are all in
 
 ## What's next, in dependency order
 
-1. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
-   export map goes), built `dist/` and `types/`, and a v8 getting-started in
-   the README.
+1. Tag `v3.0.0-alpha.1`. The package is ready: one entry point (`dist/esm`,
+   `dist/cjs`, `types`), version `3.0.0-alpha.1`, a v8 getting-started in
+   the README, and a changelog entry. A packed tarball installed next to
+   PixiJS 8.20.1 type-checks (strict, declarations checked too) and bundles.
+   `dist/` and `types/` are ignored on the branch, so the tag goes on a
+   release commit that adds them (`npm run build && npm run types`), since
+   installing from GitHub does not build.
 
 ## Snapshot test suite
 

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0-alpha.1] - Unreleased (unofficial fork)
+### Changed
+- Ported to PixiJS v8 (8.20 or later), keeping the API of 2.5.0 wherever
+  PixiJS v8 allows. Every difference is listed in
+  [MIGRATION_V8.md](MIGRATION_V8.md); the port's progress is in
+  [PORT_STATUS.md](PORT_STATUS.md).
+- One entry point, `pixi3d`: the `pixi3d/pixi7` entry point is gone.
+
+### Removed
+- Support for PixiJS v5, v6 and v7. Use 2.5.0 for those.
+
 ## [2.5.0] - 2023-12-17
 ### Added
 - Added support mesh quantization.

@@ -14,6 +14,8 @@ The fork is unofficial and comes as is; see the notice in the
 
 - **PixiJS 8.20 or later.** The cubemap upload uses an extension point
   PixiJS added in 8.19.
+- **One entry point:** import from `pixi3d`. The `pixi3d/pixi7` entry point
+  is gone.
 - **WebGL only.** Pixi3D's shaders are GLSL, so create the application with
   `preference: "webgl"`:
 
