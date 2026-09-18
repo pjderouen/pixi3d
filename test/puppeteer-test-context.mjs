@@ -16,6 +16,8 @@ const PIXI_SCRIPT = path.join(DIRNAME, "../node_modules/pixi.js/dist/pixi.js")
 // When set, every render is also written to this directory, named after its
 // snapshot.
 const RENDER_OUT = process.env.RENDER_OUT
+// Set to 1 to render with WebGL 1 rather than WebGL 2.
+const WEBGL_VERSION = Number(process.env.WEBGL_VERSION) || 2
 
 use(function (chai) {
   chai.Assertion.addMethod("match", async function (expectedURL, { resources = [], threshold = 0.1, maxDiff = 50 } = {}) {
@@ -54,6 +56,7 @@ beforeEach(async function () {
   await page.addScriptTag({ path: PIXI_SCRIPT })
   await page.addScriptTag({ path: path.join(DIRNAME, "../dist/browser/pixi3d.js") })
   await page.addScriptTag({ path: path.join(DIRNAME, "test-utils.js") })
+  await page.evaluate((version) => { window.PIXI3D_TEST_WEBGL_VERSION = version }, WEBGL_VERSION)
 })
 
 afterEach(async function () {

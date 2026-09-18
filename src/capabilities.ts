@@ -43,16 +43,32 @@ export namespace Capabilities {
     if (!ext) {
       return false
     }
-    const gl = getGlContext(renderer)
+    _isHalfFloatFramebufferSupported = isRenderableColorType(getGlContext(renderer), ext.HALF_FLOAT_OES)
+    return _isHalfFloatFramebufferSupported
+  }
+
+  /**
+   * Returns whether a framebuffer with an RGBA color texture of the given
+   * type is complete. The texture and framebuffer bindings are restored
+   * afterwards, so the renderer's record of them stays true.
+   * @param gl The WebGL context.
+   * @param type The texture type.
+   */
+  function isRenderableColorType(gl: WebGLRenderingContext | WebGL2RenderingContext, type: number) {
+    const previousTexture = gl.getParameter(gl.TEXTURE_BINDING_2D)
+    const previousFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING)
     const texture = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, texture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, ext.HALF_FLOAT_OES, null)
-    const fb = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
-    const attachmentPoint = gl.COLOR_ATTACHMENT0
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0)
-    _isHalfFloatFramebufferSupported = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE
-    return _isHalfFloatFramebufferSupported
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, type, null)
+    const framebuffer = gl.createFramebuffer()
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
+    const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE
+    gl.bindFramebuffer(gl.FRAMEBUFFER, previousFramebuffer)
+    gl.bindTexture(gl.TEXTURE_2D, previousTexture)
+    gl.deleteFramebuffer(framebuffer)
+    gl.deleteTexture(texture)
+    return complete
   }
 
   let _isFloatFramebufferSupported: boolean | undefined
@@ -69,14 +85,7 @@ export namespace Capabilities {
       return false
     }
     const gl = getGlContext(renderer)
-    const texture = gl.createTexture()
-    gl.bindTexture(gl.TEXTURE_2D, texture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.FLOAT, null)
-    const fb = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
-    const attachmentPoint = gl.COLOR_ATTACHMENT0
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, texture, 0)
-    _isFloatFramebufferSupported = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE
+    _isFloatFramebufferSupported = isRenderableColorType(gl, gl.FLOAT)
     return _isFloatFramebufferSupported
   }
 

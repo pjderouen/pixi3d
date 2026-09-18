@@ -1,5 +1,6 @@
 import { BufferImageSource, Texture, Renderer } from "pixi.js"
 import { Capabilities } from "../../capabilities"
+import { FLOAT_UPLOAD_METHOD_ID } from "../../compatibility/float-texture-uploader"
 
 export class StandardMaterialMatrixTexture extends Texture {
   private _buffer: Float32Array
@@ -24,6 +25,8 @@ export class StandardMaterialMatrixTexture extends Texture {
       alphaMode: "no-premultiply-alpha",
       resolution: 1,
     })
+    // Uploaded by Pixi3D's float uploader, which also handles WebGL 1.
+    source.uploadMethodId = FLOAT_UPLOAD_METHOD_ID
     super({ source })
     this._buffer = buffer
     this._bufferSource = source

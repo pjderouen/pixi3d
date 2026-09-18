@@ -268,6 +268,14 @@ export class StandardMaterial extends Material {
   }
 
   createShader(mesh: Mesh3D, renderer: WebGLRenderer) {
+    if (renderer.context.webGLVersion === 1) {
+      // The shader's extension directives only take effect for extensions
+      // the context has enabled, and PixiJS enables neither of these.
+      const gl = renderer.gl
+      for (let extension of ["EXT_shader_texture_lod", "OES_standard_derivatives"]) {
+        gl.getExtension(extension)
+      }
+    }
     let lightingEnvironment = this.lightingEnvironment || LightingEnvironment.main
     let features = StandardMaterialFeatureSet.build(renderer, mesh, mesh.geometry, this, lightingEnvironment)
     if (!features) {

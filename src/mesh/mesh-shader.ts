@@ -3,6 +3,7 @@ import { Mesh3D } from "./mesh"
 import { MeshGeometry3D } from "./geometry/mesh-geometry"
 import { createAttribute, createIndexBuffer } from "./geometry/mesh-geometry-buffers"
 import { syncUniforms, UniformValues } from "./mesh-shader-uniforms"
+import { fixGlslEs100Program } from "../compatibility/gl-program"
 
 const oppositeWindingStates = new WeakMap<State, State>()
 
@@ -51,6 +52,7 @@ export class MeshShader extends Shader {
    * @param program The compiled program (see `GlProgram.from`).
    */
   constructor(program: GlProgram) {
+    fixGlslEs100Program(program)
     super({ glProgram: program, resources: {} })
   }
 

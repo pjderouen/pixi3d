@@ -40,13 +40,15 @@ difference, it is the smallest possible one and is written down.
 - **API parity:** every export and member of Pixi3D 2.5.0 is present, except
   where PixiJS v8 forces a difference; each of those is in
   [MIGRATION_V8.md](MIGRATION_V8.md). See "API parity audit" below.
-- **Upstream's snapshot suite passes on PixiJS 8.20.1**: all 40 snapshot
-  tests against the original v7 snapshots, none re-baselined, and the two
-  picking tests (`npm test`; see "Snapshot test suite" below). 39 of the 40
-  renders are pixel for pixel what 2.5.0 renders on PixiJS 7.2.4 on the same
-  machine; the directional shadow differs by 3 pixels.
-- **Not verified yet:** morphing (no test covers it) and the WebGL1 path,
-  which is broken (see below).
+- **Upstream's snapshot suite passes on PixiJS 8.20.1, on WebGL 2 and on
+  WebGL 1**: all 40 snapshot tests against the original v7 snapshots, none
+  re-baselined, and the two picking tests (`npm test`; see "Snapshot test
+  suite" below). Compared with 2.5.0 on PixiJS 7.2.4 on the same machine,
+  every WebGL 1 render is identical pixel for pixel, and so are 39 of the 40
+  WebGL 2 renders; the directional shadow differs by 3 pixels there, most
+  likely from the shadow map's depth buffer (v7 used a 16-bit depth
+  texture, v8 a 24-bit buffer).
+- **Not verified yet:** morphing, which no test covers.
 
 ### v8 differences found by rendering
 
@@ -109,10 +111,30 @@ everything that only became right on a later frame, and a few worse.
   over the passes differently). The composite sprite test uses
   `BlurFilter({ legacy: true })`, v7's blur, so it still compares against the
   original snapshot.
-- **The WebGL1 path does not compile.** v8's `GlProgram` puts a
-  `#define SHADER_NAME` line before a shader's `#version 100`, and a precision
-  statement before its `#extension` directives, both errors in GLSL ES 1.00.
-  Found by building the shadow pass as WebGL1 on purpose; see "What's next".
+
+### v8 differences found on WebGL 1
+
+- **GLSL ES 1.00 shaders did not compile.** v8's `GlProgram` puts a
+  `#define SHADER_NAME` line, a block of WebGL 1 defines and a precision
+  statement at the top of every GLSL ES 1.00 source: the `#version 100`
+  directive was no longer first, and a statement came before the
+  `#extension` directives. `MeshShader` moves both back into place before
+  the program is first compiled (`compatibility/gl-program.ts`).
+- **v8 creates no float textures on WebGL 1.** It passes WebGL 2's sized
+  internal formats (`RGBA32F`, `RGBA16F`) and has no half float type there,
+  so the joint matrix textures and the shadow maps failed to allocate.
+  They are allocated by a Pixi3D texture uploader (the 8.19 extension
+  point) that uses WebGL 1's unsized format and `OES_texture_half_float`'s
+  type, as PixiJS v7 did (`compatibility/float-texture-uploader.ts`).
+- **The shader extensions were never enabled.** 2.5.0's `StandardMaterial`
+  enabled `EXT_shader_texture_lod` and `OES_standard_derivatives` before
+  building a shader on WebGL 1, and the port had dropped that; without
+  derivatives, a mesh without normals shaded black. Restored.
+- **The capability probes changed GL state behind v8's back**, leaving a
+  probe texture and framebuffer bound, which v8 keeps a record of. They
+  restore the bindings now.
+- PixiJS v8 sets some WebGL 2-only texture parameters on WebGL 1 too, which
+  logs `INVALID_ENUM: texParameter` warnings there; they change nothing.
 
 ## API parity audit
 
@@ -151,9 +173,7 @@ error. The differences that remain are forced by v8 and are all in
 
 ## What's next, in dependency order
 
-1. Make the WebGL1 path compile (see above), and run the snapshot suite on a
-   WebGL1 context too.
-2. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
+1. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
    export map goes), built `dist/` and `types/`, and a v8 getting-started in
    the README.
 
@@ -166,8 +186,9 @@ npm test
 builds the library, then renders every test scene in headless Chromium
 (puppeteer's bundled build) with the `pixi.js` from `node_modules`, and
 compares each render with its snapshot in `test/snapshots` using the
-suite's own `threshold` and `maxDiff`. Set `RENDER_OUT` to a directory to
-also write every render there, named after its snapshot.
+suite's own `threshold` and `maxDiff`. Set `WEBGL_VERSION=1` to render with
+WebGL 1, and `RENDER_OUT` to a directory to also write every render there,
+named after its snapshot.
 
 The snapshots are upstream's, made on PixiJS v7. To tell a difference caused
 by the port from one caused by the machine, 2.5.0 was run first, unchanged,
@@ -207,7 +228,7 @@ failure otherwise shows only as a mesh that never draws).
 
 - `npm run build` builds `dist/browser`, `dist/cjs` and `dist/esm` (each
   `pixi3d.js` and `pixi3d.min.js`) with `pixi.js` external; `package.json`
-  still points at the old layout until step 2 above.
+  still points at the old layout until step 1 above.
 - `typedoc` 0.22 predates the TypeScript 5 this port needs, so the lockfile
   is resolved with legacy peer dependencies until the docs step updates it.
 

@@ -6,7 +6,10 @@ describe("Picking interaction", () => {
   // the hit area, after which the picking map is drawn) and hit tests the
   // specified points. Runs in the page; returns which points hit the cube.
   const hitTestCube = async (points) => {
-    let renderer = await PIXI.autoDetectRenderer({ width: 800, height: 600, preference: "webgl" })
+    let renderer = await PIXI.autoDetectRenderer({
+      width: 800, height: 600, preference: "webgl",
+      preferWebGLVersion: window.PIXI3D_TEST_WEBGL_VERSION || 2
+    })
     let mesh = PIXI3D.Mesh3D.createCube()
     mesh.hitArea = new PIXI3D.PickingHitArea(mesh)
     mesh.eventMode = "static"

@@ -13,9 +13,10 @@ async function loadResources(urls) {
 }
 
 async function getObjectURLFromRender(render, urls, { width = 1280, height = 720 } = {}) {
-  // Pixi3D renders with WebGL only.
+  // Pixi3D renders with WebGL only; the runner can ask for WebGL 1.
   let renderer = await PIXI.autoDetectRenderer({
-    width, height, backgroundColor: 0xcccccc, preference: "webgl"
+    width, height, backgroundColor: 0xcccccc, preference: "webgl",
+    preferWebGLVersion: window.PIXI3D_TEST_WEBGL_VERSION || 2
   })
   let resources = await loadResources(urls)
   return new Promise(async (resolve, reject) => {
