@@ -88,8 +88,14 @@ export class Container3D extends Container {
     this.transform.position.z = value
   }
 
-  /** The 3D transformation matrix in world space. */
+  /**
+   * The 3D transformation matrix in world space. It is brought up to date
+   * with this object's and its ancestors' transforms when read: PixiJS v8
+   * does not update 3D transforms while rendering, as v7 did for every
+   * object in the scene.
+   */
   get worldTransform() {
+    this.updateTransform3D()
     return this.transform.worldTransform
   }
 
@@ -160,6 +166,7 @@ function updateDescendantTransforms(container: Container) {
 // transform into the 3D matrix's 2D fields instead.
 Object.defineProperty(Container3D.prototype, "localTransform", {
   get(this: Container3D) {
+    this.transform.updateLocalTransform()
     return this.transform.localTransform
   },
   set(this: Container3D, _value: unknown) { },

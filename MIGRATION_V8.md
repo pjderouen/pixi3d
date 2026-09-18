@@ -86,6 +86,10 @@ also accept a 2D point now, as `ObservablePoint.normalize` does.
 - Meshes are drawn through PixiJS v8's render pipes, so `Mesh3D._render`, the
   PixiJS v7 render hook, is gone. `renderPipeId` names the pipe that draws a
   mesh; `pluginName` still works as another name for it.
+- `MeshShader` takes a PixiJS v8 `GlProgram`
+  (`GlProgram.from({ vertex, fragment })`) where it took a v7 `Program`
+  (`Program.from(vertex, fragment)`). `Material.from(vertex, fragment)` is
+  unchanged.
 - `MeshShader.render(mesh, renderer, state, drawMode)` takes a PixiJS v8
   topology (`"triangle-list"`, `"line-strip"`, ...) as its last argument.
   PixiJS' deprecated `DRAW_MODES` constants still map to these.
@@ -136,3 +140,17 @@ also accept a 2D point now, as `ObservablePoint.normalize` does.
   v7 either.
 - `LightingEnvironment` and `PickingInteraction` are PixiJS v8 renderer
   systems where they were v7 renderer plugins. Their API is unchanged.
+
+## Changes in PixiJS that show in 3D scenes
+
+These come from PixiJS itself; Pixi3D renders as it did.
+
+- `CameraOrbitControl` takes the element to listen on: pass
+  `renderer.canvas` or `app.canvas`. In PixiJS v8, `renderer.view` is no
+  longer the canvas.
+- PixiJS v8's `BlurFilter` spreads its strength over its passes differently
+  from v7's, so a blurred `CompositeSprite` looks blurrier.
+  `new BlurFilter({ legacy: true })` blurs as v7 did.
+- Picking hit areas work with PixiJS v8's event system; set
+  `mesh.eventMode = "static"` (`interactive = true` still works in v8, as a
+  deprecated alias).

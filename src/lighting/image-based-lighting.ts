@@ -33,8 +33,9 @@ export class ImageBasedLighting {
   private static _defaultLookupBrdf?: Texture
 
   /**
-   * The default BRDF integration map lookup texture. Created the first time
-   * it is read, unless replaced before then.
+   * The default BRDF integration map lookup texture. Its image starts
+   * decoding as soon as the library is loaded (see below), so it is ready by
+   * the time the first scene is rendered.
    */
   static get defaultLookupBrdf(): Texture {
     if (!this._defaultLookupBrdf) {
@@ -76,4 +77,12 @@ export class ImageBasedLighting {
   get valid() {
     return this._diffuse.valid && this._specular.valid
   }
+}
+
+// Decode the default lookup texture now, as PixiJS v7 did when it was a
+// static field: a texture created on first use would still be decoding
+// during the first render, and metallic surfaces would render black. Where
+// there is no DOM, it is created on first use instead.
+if (typeof Image !== "undefined") {
+  ImageBasedLighting.defaultLookupBrdf
 }

@@ -4,6 +4,33 @@ import { MeshGeometry3D } from "./geometry/mesh-geometry"
 import { createAttribute, createIndexBuffer } from "./geometry/mesh-geometry-buffers"
 import { syncUniforms, UniformValues } from "./mesh-shader-uniforms"
 
+const oppositeWindingStates = new WeakMap<State, State>()
+
+/**
+ * Returns the state to draw with on the current render target. PixiJS v8
+ * inverts the front face while drawing into a render texture, to match its
+ * 2D projection, which flips y there. Pixi3D's projection does not, so there
+ * the state is swapped for one of the opposite winding, which the inversion
+ * turns back into the intended one (PixiJS v7 inverted nothing).
+ * @param renderer The renderer to draw with.
+ * @param state The intended state.
+ */
+function stateForRenderTarget(renderer: WebGLRenderer, state: State) {
+  if (!renderer.renderTarget.frontFaceInverted) {
+    return state
+  }
+  let opposite = oppositeWindingStates.get(state)
+  if (!opposite) {
+    opposite = new State()
+    oppositeWindingStates.set(state, opposite)
+  }
+  opposite.blendMode = state.blendMode
+  opposite.polygonOffset = state.polygonOffset
+  opposite.data = state.data
+  opposite.clockwiseFrontFace = !state.clockwiseFrontFace
+  return opposite
+}
+
 /**
  * Shader used specifically to render a mesh.
  */
@@ -78,7 +105,7 @@ export class MeshShader extends Shader {
     let geometry = mesh.geometry.getShaderGeometry(this)
     renderer.shader.bind(this, true)
     syncUniforms(renderer, this.glProgram, this.uniforms)
-    renderer.state.set(state)
+    renderer.state.set(stateForRenderTarget(renderer, state))
     renderer.geometry.bind(geometry, this.glProgram)
     renderer.geometry.draw(topology, undefined, undefined, instanceCount)
   }

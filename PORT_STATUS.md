@@ -40,8 +40,13 @@ difference, it is the smallest possible one and is written down.
 - **API parity:** every export and member of Pixi3D 2.5.0 is present, except
   where PixiJS v8 forces a difference; each of those is in
   [MIGRATION_V8.md](MIGRATION_V8.md). See "API parity audit" below.
-- **Not verified yet:** picking, the skybox, animation, skinning, morphing,
-  instancing, the WebGL1 path, and the upstream snapshot test suite.
+- **Upstream's snapshot suite passes on PixiJS 8.20.1**: all 40 snapshot
+  tests against the original v7 snapshots, none re-baselined, and the two
+  picking tests (`npm test`; see "Snapshot test suite" below). 39 of the 40
+  renders are pixel for pixel what 2.5.0 renders on PixiJS 7.2.4 on the same
+  machine; the directional shadow differs by 3 pixels.
+- **Not verified yet:** morphing (no test covers it) and the WebGL1 path,
+  which is broken (see below).
 
 ### v8 differences found by rendering
 
@@ -73,6 +78,41 @@ Each of these type-checked cleanly and still drew the wrong thing.
   targets for a texture without one.
 - **A sprite's quad comes from `visualBounds`**, which includes the texture
   trim; v8's `bounds` does not.
+
+### v8 differences found by the snapshot suite
+
+The harness scenes render many frames; the suite renders one, which exposed
+everything that only became right on a later frame, and a few worse.
+
+- **v8 inverts the front face when drawing into a render texture**, to match
+  its 2D projection, which flips y there. Pixi3D's projection does not, so
+  every culled mesh drawn into a texture lost its front faces: the shadow
+  map held back faces (shadows shifted), a single-sided mesh cast no shadow,
+  and the same held for `CompositeSprite` and the picking map. `MeshShader`
+  now draws there with the opposite winding, which v8's inversion turns back
+  (8.20's `renderTarget.frontFaceInverted` says when).
+- **Nothing updates 3D transforms while rendering**, where v7 updated every
+  object's each frame. The port updated a mesh and its ancestors before
+  drawing it, which missed joints (a skinned mesh drew in its bind pose),
+  lights, and the camera (the shadow pass read both before anything updated
+  them). `Container3D.worldTransform` and `localTransform` now bring
+  themselves up to date when read, `Skin` updates its joints, and `Camera`
+  and `LightingEnvironment` update on `prerender` again, as they did in
+  2.5.0.
+- **The BRDF lookup texture was created on first use**, so it was still
+  decoding during the first render and metallic surfaces drew black. It is
+  decoded when the library loads again, as the 2.5.0 static field was.
+- **glTF textures sample as in 2.5.0** again: the sampler's wrap mode along s
+  for both axes, linear filtering, mipmaps for power-of-two images. The port
+  had applied the samplers' filters, which 2.5.0 never did.
+- **v8's `BlurFilter` blurs differently from v7's** (the strength is spread
+  over the passes differently). The composite sprite test uses
+  `BlurFilter({ legacy: true })`, v7's blur, so it still compares against the
+  original snapshot.
+- **The WebGL1 path does not compile.** v8's `GlProgram` puts a
+  `#define SHADER_NAME` line before a shader's `#version 100`, and a precision
+  statement before its `#extension` directives, both errors in GLSL ES 1.00.
+  Found by building the shadow pass as WebGL1 on purpose; see "What's next".
 
 ## API parity audit
 
@@ -111,12 +151,35 @@ error. The differences that remain are forced by v8 and are all in
 
 ## What's next, in dependency order
 
-1. Port the puppeteer/pixelmatch suite (`test/`) to v8 and run it against the
-   existing v7 snapshots. A snapshot is re-baselined only when the
-   difference is shown to come from PixiJS itself.
+1. Make the WebGL1 path compile (see above), and run the snapshot suite on a
+   WebGL1 context too.
 2. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
    export map goes), built `dist/` and `types/`, and a v8 getting-started in
    the README.
+
+## Snapshot test suite
+
+```
+npm test
+```
+
+builds the library, then renders every test scene in headless Chromium
+(puppeteer's bundled build) with the `pixi.js` from `node_modules`, and
+compares each render with its snapshot in `test/snapshots` using the
+suite's own `threshold` and `maxDiff`. Set `RENDER_OUT` to a directory to
+also write every render there, named after its snapshot.
+
+The snapshots are upstream's, made on PixiJS v7. To tell a difference caused
+by the port from one caused by the machine, 2.5.0 was run first, unchanged,
+on PixiJS 7.2.4 (both from npm) on the same machine: all 40 snapshot tests
+passed, so they reproduce here. The test code changed only where PixiJS v8
+or the migration note requires: `renderer.renderPipes.pipeline` for
+`renderer.plugins.pipeline`, `GlProgram.from({ vertex, fragment })` for
+`Program.from(vertex, fragment)`, `renderer.canvas` for `renderer.view`,
+the renderer created with `autoDetectRenderer`, and the legacy blur above.
+The picking tests are new versions of upstream's, which asserted inside the
+page and so never ran under puppeteer; they run in both runners now, through
+`evaluateInPage`.
 
 ## Render harness
 
@@ -142,8 +205,9 @@ failure otherwise shows only as a mesh that never draws).
 
 ## Toolchain notes
 
-- The library build (`rollup.build.js`) still targets the old package
-  layout, so `npm run build` does not work yet; see step 2 above.
+- `npm run build` builds `dist/browser`, `dist/cjs` and `dist/esm` (each
+  `pixi3d.js` and `pixi3d.min.js`) with `pixi.js` external; `package.json`
+  still points at the old layout until step 2 above.
 - `typedoc` 0.22 predates the TypeScript 5 this port needs, so the lockfile
   is resolved with legacy peer dependencies until the docs step updates it.
 

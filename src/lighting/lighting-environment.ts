@@ -20,12 +20,17 @@ export class LightingEnvironment {
   /** The main lighting environment which is used by default. */
   static main: LightingEnvironment
 
+  private _prerender = { prerender: () => this.updateLightTransforms() }
+
   /**
    * Creates a new lighting environment using the specified renderer.
    * @param renderer The renderer to use.
    * @param imageBasedLighting The image based lighting to use.
    */
   constructor(public renderer: Renderer, imageBasedLighting?: ImageBasedLighting) {
+    // The lights are updated before every render, as the shadow pass reads
+    // them before any material does.
+    renderer.runners.prerender.add(this._prerender)
     if (!LightingEnvironment.main) {
       LightingEnvironment.main = this
     }
@@ -44,6 +49,7 @@ export class LightingEnvironment {
   }
 
   destroy() {
+    this.renderer.runners?.prerender?.remove(this._prerender)
   }
 
   /** Value indicating if this object is valid to be used for rendering. */

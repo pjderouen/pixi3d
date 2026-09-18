@@ -1,5 +1,5 @@
 import { ImageSource, Texture } from "pixi.js"
-import type { SCALE_MODE, WRAP_MODE } from "pixi.js"
+import type { WRAP_MODE } from "pixi.js"
 import { glTFChannel } from "./animation/gltf-channel"
 import type { glTFTexture } from "./gltf-texture"
 import { glTFAsset } from "./gltf-asset"
@@ -208,6 +208,7 @@ export class glTFParser {
     // Each glTF texture pairs an image with its own sampler state, which in
     // PixiJS v8 lives on the texture source (there is no per-texture style),
     // so a new source is created over the already decoded image resource.
+    const { pixelWidth, pixelHeight } = image.source
     const source = new ImageSource({
       resource: image.source.resource,
       // Went back and forth about NO_PREMULTIPLIED_ALPHA. The default in
@@ -218,14 +219,14 @@ export class glTFParser {
       // Sample Viewer and Babylon.js uses NO_PREMULTIPLIED_ALPHA so decided to
       // do the same.
       alphaMode: "no-premultiply-alpha",
-      autoGenerateMipmaps: samplerUsesMipmaps(sampler.minFilter),
+      // The sampler's wrap mode along s applies to both axes, and filtering
+      // is PixiJS v7's default: linear, with mipmaps for power-of-two images.
+      // Pixi3D never applied a sampler's filters.
+      addressMode: samplerWrapMode(sampler.wrapS),
+      scaleMode: "linear",
+      autoGenerateMipmaps: isPowerOfTwo(pixelWidth) && isPowerOfTwo(pixelHeight),
       label: texture.name,
     })
-    source.style.addressModeU = samplerWrapMode(sampler.wrapS)
-    source.style.addressModeV = samplerWrapMode(sampler.wrapT)
-    source.style.magFilter = samplerFilter(sampler.magFilter)
-    source.style.minFilter = samplerFilter(sampler.minFilter)
-    source.style.mipmapFilter = samplerMipmapFilter(sampler.minFilter)
     return new Texture({ source })
   }
 
@@ -406,15 +407,8 @@ export class glTFParser {
   }
 }
 
-// glTF sampler constants (WebGL enum values) mapped onto PixiJS v8's string
-// texture styles. Filters are implementation-defined when a sampler omits
-// them; trilinear filtering is used then, matching the glTF sample viewer.
-const GL_NEAREST = 9728
-const GL_LINEAR = 9729
-const GL_NEAREST_MIPMAP_NEAREST = 9984
-const GL_LINEAR_MIPMAP_NEAREST = 9985
-const GL_NEAREST_MIPMAP_LINEAR = 9986
-const GL_LINEAR_MIPMAP_LINEAR = 9987
+// glTF sampler wrap modes (WebGL enum values) mapped onto PixiJS v8's
+// address modes.
 const GL_REPEAT = 10497
 const GL_CLAMP_TO_EDGE = 33071
 const GL_MIRRORED_REPEAT = 33648
@@ -428,39 +422,8 @@ function samplerWrapMode(wrap?: number): WRAP_MODE {
   }
 }
 
-function samplerFilter(filter?: number): SCALE_MODE {
-  switch (filter) {
-    case GL_NEAREST:
-    case GL_NEAREST_MIPMAP_NEAREST:
-    case GL_NEAREST_MIPMAP_LINEAR:
-      return "nearest"
-    default:
-      return "linear"
-  }
-}
-
-function samplerMipmapFilter(minFilter?: number): SCALE_MODE {
-  switch (minFilter) {
-    case GL_NEAREST_MIPMAP_NEAREST:
-    case GL_LINEAR_MIPMAP_NEAREST:
-      return "nearest"
-    default:
-      return "linear"
-  }
-}
-
-function samplerUsesMipmaps(minFilter?: number) {
-  switch (minFilter) {
-    case GL_NEAREST:
-    case GL_LINEAR:
-      return false
-    case GL_NEAREST_MIPMAP_NEAREST:
-    case GL_LINEAR_MIPMAP_NEAREST:
-    case GL_NEAREST_MIPMAP_LINEAR:
-    case GL_LINEAR_MIPMAP_LINEAR:
-    default:
-      return true
-  }
+function isPowerOfTwo(value: number) {
+  return value > 0 && (value & (value - 1)) === 0
 }
 
 const componentCount: { [name: string]: number } = {

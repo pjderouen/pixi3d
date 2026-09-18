@@ -65,6 +65,8 @@ export class Camera extends Container3D implements TransformId {
   /** Main camera which is used by default. */
   static main: Camera
 
+  private _prerender = { prerender: () => this.updateTransform3D() }
+
   /**
    * Creates a new camera using the specified renderer. By default the camera
    * looks towards negative z and is positioned at z = 5.
@@ -72,6 +74,10 @@ export class Camera extends Container3D implements TransformId {
    */
   constructor(public renderer: Renderer) {
     super()
+    // The camera's transform is updated before every render, as it is when
+    // any of its matrices are read: the shadow pass reads its world
+    // transform directly.
+    renderer.runners.prerender.add(this._prerender)
     if (!Camera.main) {
       Camera.main = this
     }
@@ -80,6 +86,7 @@ export class Camera extends Container3D implements TransformId {
   }
 
   destroy(options?: DestroyOptions) {
+    this.renderer.runners?.prerender?.remove(this._prerender)
     super.destroy(options)
     if (this === Camera.main) {
       // @ts-ignore It's ok, main camera was destroyed.
