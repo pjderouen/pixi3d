@@ -1,20 +1,15 @@
-import { PointData } from "pixi.js"
+import { ObservablePoint, Observer, Point, PointData } from "pixi.js"
 import { Vec3 } from "../math/vec3"
 import { Matrix4x4 } from "./matrix"
 import { Quaternion } from "./quaternion"
+import { unusedObserver } from "./unused-observer"
 
 const temp = new Float32Array(3)
 
 /**
  * Represents a point in 3D space.
- *
- * Up to PixiJS v7 this extended `ObservablePoint`. v8's ObservablePoint
- * gained `magnitude()`/`normalize()` methods (math-extras) that collide
- * with this class's long-standing `magnitude` getter and `normalize(out)`,
- * so Point3D is now standalone; it still has the `x`/`y` shape of
- * `PointData` and notifies its owner through the same callback + scope.
  */
-export class Point3D implements IPoint3DData, PointData {
+export class Point3D extends ObservablePoint implements IPoint3DData {
   private _array = new Float32Array(3)
 
   /** The callback invoked when the point changes. */
@@ -41,6 +36,7 @@ export class Point3D implements IPoint3DData, PointData {
    * @param scope The owner of callback.
    */
   constructor(x = 0, y = 0, z = 0, cb: () => void = () => { }, scope: any = undefined) {
+    super(unusedObserver)
     this.cb = cb
     this.scope = scope
     this._array.set([x, y, z])
@@ -88,8 +84,23 @@ export class Point3D implements IPoint3DData, PointData {
     }
   }
 
-  clone(cb = this.cb, scope = this.scope) {
-    return new Point3D(this.x, this.y, this.z, cb, scope)
+  /**
+   * Creates a clone of this point.
+   * @param cb Callback when changed.
+   * @param scope Owner of callback.
+   */
+  clone(cb?: () => void, scope?: any): Point3D
+  /**
+   * Creates a clone of this point, notifying a PixiJS observer when changed.
+   * @param observer The observer to notify.
+   */
+  clone(observer?: Observer<ObservablePoint>): Point3D
+  clone(cb: (() => void) | Observer<ObservablePoint> = this.cb, scope: any = this.scope) {
+    if (typeof cb === "function") {
+      return new Point3D(this.x, this.y, this.z, cb, scope)
+    }
+    const point: Point3D = new Point3D(this.x, this.y, this.z, () => cb._onUpdate(point))
+    return point
   }
 
   copyFrom(p: IPoint3DData) {
@@ -141,13 +152,33 @@ export class Point3D implements IPoint3DData, PointData {
    * Normalize the point.
    * @param out The receiving point. If not supplied, a new point will be created.
    */
-  normalize(out = new Point3D()) {
-    return out.setFrom(Vec3.normalize(this._array, temp))
+  normalize(out?: Point3D): Point3D
+  /**
+   * Normalize the point into a 2D point, as `ObservablePoint.normalize`
+   * does: receives the x and y of the normalized 3D point.
+   * @param out The receiving point.
+   */
+  normalize<T extends PointData = Point>(out?: T): T
+  normalize(out: PointData = new Point3D()) {
+    const normalized = Vec3.normalize(this._array, temp)
+    if (out instanceof Point3D) {
+      return out.setFrom(normalized)
+    }
+    out.x = normalized[0]
+    out.y = normalized[1]
+    return out
   }
 
-  /** Calculates the length of the point. */
-  get magnitude() {
+  /**
+   * Calculates the length of the point. A method, as on PixiJS v8's
+   * `ObservablePoint`; it was a getter up to PixiJS v7.
+   */
+  magnitude() {
     return Vec3.magnitude(this._array)
+  }
+
+  toString() {
+    return `[pixi3d:Point3D x=${this.x} y=${this.y} z=${this.z}]`
   }
 
   /**

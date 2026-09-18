@@ -8,47 +8,47 @@ import { RenderPass } from "./render-pass"
 import { StandardMaterial } from "../material/standard/standard-material"
 import { MaterialRenderSortType } from "../material/material-render-sort-type"
 import { Compatibility } from "../compatibility/compatibility"
+import { SpriteBatchRenderer } from "../sprite/sprite-batch-renderer"
+import { ProjectionSprite } from "../sprite/projection-sprite"
+import { Sprite3D } from "../sprite/sprite"
 
 /**
- * One run of consecutive meshes in the renderer's instruction set. All the
- * meshes collected into it are sorted and drawn together when the renderer
- * executes it, which is what lets transparent materials sort behind opaque
- * ones and lets the shadow pass run once for the batch.
+ * One run of consecutive meshes and sprites in the renderer's instruction
+ * set. Everything collected into it is sorted and drawn together when the
+ * renderer executes it, which is what lets transparent materials sort behind
+ * opaque ones, lets the shadow pass run once for the batch and lets sprites
+ * draw back to front after the meshes.
  */
 interface PipelineInstruction extends Instruction {
   renderPipeId: "pipeline"
   canBundle: false
   meshes: Mesh3D[]
+  sprites: Sprite3D[]
 }
 
 /**
- * The standard pipeline renders meshes using the set render passes. It's
- * created and used by default.
+ * The standard pipeline renders meshes using the set render passes, and
+ * sprites after them. It's created and used by default.
  *
  * In PixiJS v8 this is a render pipe: the renderer hands it every `Mesh3D`
- * while building the frame's instruction set (`addRenderable`), and calls
- * `execute` when it reaches the pipeline's instruction while drawing.
+ * and `Sprite3D` while building the frame's instruction set
+ * (`addRenderable`), and calls `execute` when it reaches the pipeline's
+ * instruction while drawing.
  */
 export class StandardPipeline {
+  protected _spriteRenderer!: SpriteBatchRenderer
   protected _meshes: Mesh3D[] = []
+  protected _sprites: ProjectionSprite[] = []
   protected _current?: PipelineInstruction
-  protected _shadowPass?: ShadowRenderPass
 
   /** The pass used for rendering materials. */
   materialPass: MaterialRenderPass
 
   /**
-   * The pass used for rendering shadows. Created the first time shadows are
-   * enabled (`enableShadows`), so scenes without shadows never pay for the
-   * shadow map resources.
+   * The pass used for rendering shadows. Created with the WebGL context,
+   * which its shaders depend on; PixiJS v8 creates render pipes before it.
    */
-  get shadowPass() {
-    if (!this._shadowPass) {
-      this._shadowPass = new ShadowRenderPass(this.renderer, "shadow")
-      this.renderPasses.unshift(this._shadowPass)
-    }
-    return this._shadowPass
-  }
+  shadowPass!: ShadowRenderPass
 
   /** The array of render passes. Each mesh will be rendered with these passes (if it has been enabled on that mesh). */
   renderPasses: RenderPass[]
@@ -60,9 +60,34 @@ export class StandardPipeline {
   constructor(public renderer: WebGLRenderer) {
     this.materialPass = new MaterialRenderPass(renderer, "material")
     this.renderPasses = [this.materialPass]
+    // Render pipes get no calls from the renderer's runners unless they join
+    // them. Joined after the renderer's systems, so the render target is
+    // already bound when `renderStart` runs.
+    renderer.runners.contextChange.add(this)
+    renderer.runners.renderStart.add(this)
+    if (renderer.gl) {
+      this.contextChange()
+    }
   }
 
-  /** Called by the renderer before each frame is drawn. */
+  /**
+   * Creates what depends on the WebGL context: the shadow pass and the
+   * sprite renderer.
+   */
+  contextChange() {
+    if (!this.shadowPass) {
+      this.shadowPass = new ShadowRenderPass(this.renderer, "shadow")
+      this.renderPasses.unshift(this.shadowPass)
+    }
+    if (!this._spriteRenderer) {
+      this._spriteRenderer = new SpriteBatchRenderer(this.renderer)
+    }
+  }
+
+  /**
+   * Clears the render passes. Called by the renderer at the start of every
+   * render, including renders to a texture.
+   */
   renderStart() {
     for (let pass of this.renderPasses) {
       if (pass.clear) { pass.clear() }
@@ -70,39 +95,45 @@ export class StandardPipeline {
   }
 
   /**
-   * Adds a mesh to the instruction set being built.
-   * @param mesh The mesh to render.
+   * Adds a mesh or a sprite to the instruction set being built.
+   * @param object The mesh or sprite to render.
    * @param instructionSet The instruction set currently being built.
    */
-  addRenderable(mesh: Mesh3D, instructionSet: InstructionSet) {
+  addRenderable(object: Mesh3D | Sprite3D, instructionSet: InstructionSet) {
     this.renderer.renderPipes.batch.break(instructionSet)
     const last = instructionSet.instructions[instructionSet.instructionSize - 1]
     if (!this._current || last !== this._current) {
-      this._current = { renderPipeId: "pipeline", canBundle: false, meshes: [] }
+      this._current = { renderPipeId: "pipeline", canBundle: false, meshes: [], sprites: [] }
       instructionSet.add(this._current)
     }
-    this._current.meshes.push(mesh)
+    if (object instanceof Sprite3D) {
+      this._current.sprites.push(object)
+    } else {
+      this._current.meshes.push(object)
+    }
   }
 
-  /** Nothing is cached per mesh; transforms are read when executing. */
-  updateRenderable(mesh: Mesh3D) { }
+  /** Nothing is cached per object; transforms are read when executing. */
+  updateRenderable(object: Mesh3D | Sprite3D) { }
 
-  /** The instruction set never needs rebuilding on account of a mesh. */
-  validateRenderable(mesh: Mesh3D) {
+  /** The instruction set never needs rebuilding on account of an object. */
+  validateRenderable(object: Mesh3D | Sprite3D) {
     return false
   }
 
-  destroyRenderable(mesh: Mesh3D) {
+  destroyRenderable(object: Mesh3D | Sprite3D) {
     if (this._current) {
-      const index = this._current.meshes.indexOf(mesh)
+      const list: (Mesh3D | Sprite3D)[] = object instanceof Sprite3D ?
+        this._current.sprites : this._current.meshes
+      const index = list.indexOf(object)
       if (index >= 0) {
-        this._current.meshes.splice(index, 1)
+        list.splice(index, 1)
       }
     }
   }
 
   /**
-   * Draws the meshes collected into an instruction.
+   * Draws the meshes and sprites collected into an instruction.
    * @param instruction The instruction to execute.
    */
   execute(instruction: PipelineInstruction) {
@@ -113,15 +144,28 @@ export class StandardPipeline {
         mesh.skin.calculateJointMatrices()
       }
     }
+    this._sprites = []
+    for (let sprite of instruction.sprites) {
+      if (sprite.isRenderable) {
+        sprite._render(this.renderer)
+        this._sprites.push(sprite.projectionSprite)
+      }
+    }
     this.sort()
     for (let pass of this.renderPasses) {
       pass.render(this._meshes.filter(mesh => mesh.isRenderPassEnabled(pass.name)))
     }
     this._meshes = []
+
+    if (this._sprites.length > 0) {
+      this._spriteRenderer.render(this._sprites)
+      this._sprites = []
+    }
   }
 
   /**
-   * Sorts the meshes by rendering order.
+   * Sorts the meshes by rendering order, and the sprites by their render
+   * sort order and then back to front.
    */
   sort() {
     this._meshes.sort((a, b) => {
@@ -135,6 +179,13 @@ export class StandardPipeline {
         return 0
       }
       return a.renderSortOrder < b.renderSortOrder ? -1 : 1
+    })
+
+    this._sprites.sort((a, b) => {
+      if (a.zIndex !== b.zIndex) {
+        return a.zIndex - b.zIndex
+      }
+      return b.distanceFromCamera - a.distanceFromCamera
     })
   }
 
@@ -174,7 +225,11 @@ export class StandardPipeline {
   }
 
   destroy() {
+    this.renderer.runners.contextChange.remove(this)
+    this.renderer.runners.renderStart.remove(this)
+    this._spriteRenderer?.destroy()
     this._meshes = []
+    this._sprites = []
     this._current = undefined
   }
 }

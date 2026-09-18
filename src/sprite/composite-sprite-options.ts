@@ -1,4 +1,4 @@
-import { DisplayObject } from "pixi.js"
+import { Container } from "pixi.js"
 export interface CompositeSpriteOptions {
   /**
    * The width of the texture for the sprite.
@@ -9,10 +9,10 @@ export interface CompositeSpriteOptions {
    */
   height?: number,
   /**
-   * The object to render. When set, it will automatically be rendered to the 
+   * The object to render. When set, it will automatically be rendered to the
    * sprite's texture each frame.
    */
-  objectToRender?: DisplayObject
+  objectToRender?: Container
   /**
    * The resolution of the texture for the sprite.
    */

@@ -4,9 +4,12 @@
 //   #material  a cube drawn with a custom Material.from shader
 //   #demo      the original demo: IBL cubemaps, teapot, ground, a shadow-
 //              casting light and orbit control
+//   #sprite    Sprite3D billboards (spherical, cylindrical, none) around a
+//              cube, a tinted and faded sprite with non-premultiplied alpha,
+//              and a blurred CompositeSprite of a second cube in the corner
 // Imports are per module, not from src/index, so a subsystem that is not
 // ported yet cannot break the scenes that are.
-import { Application, Assets } from "pixi.js"
+import { Application, Assets, BlurFilter, CanvasSource, Texture } from "pixi.js"
 import "../../src/pipeline/standard-pipeline"
 import "../../src/loader/gltf-loader"
 import "../../src/loader/cubemap-loader"
@@ -24,6 +27,10 @@ import { ShadowCastingLight } from "../../src/shadow/shadow-casting-light"
 import { ShadowQuality } from "../../src/shadow/shadow-quality"
 import { Cubemap } from "../../src/cubemap/cubemap"
 import { Color } from "../../src/color"
+import { Container3D } from "../../src/container"
+import { Sprite3D } from "../../src/sprite/sprite"
+import { SpriteBillboardType } from "../../src/sprite/sprite-billboard-type"
+import { CompositeSprite } from "../../src/sprite/composite-sprite"
 import type { StandardPipeline } from "../../src/pipeline/standard-pipeline"
 import type { glTFAsset } from "../../src/gltf/gltf-asset"
 
@@ -157,6 +164,81 @@ async function demoScene(app: Application) {
   pipeline.enableShadows(model, shadowCastingLight)
 }
 
+/** A disc with a label on it, drawn on a canvas; transparent around the disc. */
+function discTexture(label: string, color: string, alphaMode?: "no-premultiply-alpha") {
+  const canvas = document.createElement("canvas")
+  canvas.width = canvas.height = 128
+  const context = canvas.getContext("2d")!
+  context.fillStyle = color
+  context.beginPath()
+  context.arc(64, 64, 60, 0, Math.PI * 2)
+  context.fill()
+  context.fillStyle = "white"
+  context.font = "bold 72px sans-serif"
+  context.textAlign = "center"
+  context.textBaseline = "middle"
+  context.fillText(label, 64, 70)
+  return new Texture({ source: new CanvasSource({ resource: canvas, alphaMode }) })
+}
+
+function spriteScene(app: Application) {
+  addDirectionalLight()
+  // A second light from the camera's side, so the faces seen are lit.
+  addDirectionalLight(0.8).rotationQuaternion.setEulerAngles(25, -60, 0)
+  const control = new CameraOrbitControl(app.canvas)
+  control.angles.set(20, 30)
+  control.distance = 8
+
+  app.stage.addChild(matte(Mesh3D.createCube(), 0.85, 0.3, 0.2))
+  const ground = app.stage.addChild(matte(Mesh3D.createPlane(), 0.4, 0.45, 0.5))
+  ground.y = -1.2
+  ground.scale.set(6, 1, 6)
+
+  // A ring of spherical billboards: they face the camera from every angle
+  // and overlap each other, so they must be drawn back to front.
+  const colors = ["#e53935", "#1e88e5", "#43a047", "#fdd835", "#8e24aa", "#fb8c00"]
+  colors.forEach((color, i) => {
+    const sprite = app.stage.addChild(new Sprite3D(discTexture(String(i + 1), color)))
+    const angle = i / colors.length * Math.PI * 2
+    sprite.position.set(Math.cos(angle) * 2.5, 0, Math.sin(angle) * 2.5)
+    sprite.billboardType = SpriteBillboardType.spherical
+  })
+
+  // A cylindrical billboard stays upright while it turns to the camera.
+  const upright = app.stage.addChild(new Sprite3D(discTexture("C", "#00897b")))
+  upright.position.set(0, 1.9, 0)
+  upright.billboardType = SpriteBillboardType.cylindrical
+
+  // No billboard: a flat sprite turned in 3D, tinted, faded, twice the size
+  // (50 pixels per unit) and with a non-premultiplied texture.
+  const flat = app.stage.addChild(new Sprite3D(discTexture("F", "#ffffff", "no-premultiply-alpha")))
+  flat.position.set(0, 0.3, -3.5)
+  flat.rotationQuaternion.setEulerAngles(0, 35, 0)
+  flat.pixelsPerUnit = 50
+  flat.tint = 0x3949ab
+  flat.alpha = 0.6
+
+  // A second cube with a small yellow cube above it, never added to the
+  // stage, rendered each frame into a composite sprite at half resolution
+  // and blurred as a 2D sprite. The yellow cube must show above the green
+  // one, or the composite texture is upside down.
+  const offscreen = new Container3D()
+  offscreen.addChild(matte(Mesh3D.createCube(), 0.2, 0.7, 0.3))
+  const marker = offscreen.addChild(matte(Mesh3D.createCube(), 0.95, 0.85, 0.1))
+  marker.position.set(0, 1.6, 0)
+  marker.scale.set(0.4)
+  const composite = app.stage.addChild(new CompositeSprite(app.renderer, { objectToRender: offscreen }))
+  composite.setResolution(0.5)
+  composite.scale.set(0.3)
+  composite.position.set(12, 12)
+  composite.filters = [new BlurFilter({ strength: 2 })]
+  let angle = 0
+  app.ticker.add((ticker) => {
+    angle += ticker.deltaTime
+    offscreen.rotationQuaternion.setEulerAngles(0, angle, 0)
+  })
+}
+
 async function main() {
   const scene = location.hash.slice(1) || "cube"
   window.__PIXI3D_SCENE__ = scene
@@ -174,6 +256,7 @@ async function main() {
     case "teapot": await teapotScene(app); break
     case "material": materialScene(app); break
     case "demo": await demoScene(app); break
+    case "sprite": spriteScene(app); break
     default: cubeScene(app)
   }
   window.__PIXI3D_READY__ = true

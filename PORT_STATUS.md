@@ -22,9 +22,8 @@ difference, it is the smallest possible one and is written down.
 
 ## Current state
 
-- `npx tsc --noEmit -p tsconfig.json` reports **60 errors**, all in code not
-  ported yet: `src/sprite/*` (58, the 3D sprite batching) and
-  `src/skybox/skybox.ts` (2, `addChild` of a `Container3D`; see below).
+- `npx tsc --noEmit -p tsconfig.json` reports **0 errors**; every module in
+  `src/` compiles against v8.
 - **Rendered on PixiJS 8.20.1** in the harness (below), with no shader
   compile errors:
   - `#cube`: a lit `StandardMaterial` cube on a plane (the render core).
@@ -33,9 +32,13 @@ difference, it is the smallest possible one and is written down.
   - `#demo`: upstream's demo in full, with image-based lighting from
     cubemaps, a shadow-casting directional light with soft (blurred)
     shadows, and orbit control.
-- **Not verified yet:** picking, the skybox, 3D sprites, animation,
-  skinning, morphing, instancing, the WebGL1 path, and the upstream
-  snapshot test suite.
+  - `#sprite`: `Sprite3D` with each billboard type, sorted back to front and
+    depth tested against meshes; a tinted, faded sprite with a
+    non-premultiplied texture and its own pixels per unit; and a
+    `CompositeSprite` rendering a model that is not on the stage, at half
+    resolution, with a blur filter.
+- **Not verified yet:** picking, the skybox, animation, skinning, morphing,
+  instancing, the WebGL1 path, and the upstream snapshot test suite.
 
 ### v8 differences found by rendering
 
@@ -51,22 +54,57 @@ Each of these type-checked cleanly and still drew the wrong thing.
   parser without one as a conflict.
 - **glTF nodes set `label`**, v8's name for a container's name; `name` still
   reads it through v8's deprecated alias.
+- **Render pipes get no calls from the renderer's runners.** v8 constructs
+  pipes but only systems join `prerender`, `renderStart` and the rest, so the
+  pipeline's per-frame clear of its passes never ran. A shadow map then kept
+  the last frame's shadow whenever no mesh cast one (remove the caster and
+  its shadow stayed on the ground). The pipeline now joins `renderStart`
+  itself.
+- **Pipes are created before the WebGL context**, and the shadow pass needs
+  it (its shaders depend on the WebGL version). The pipeline creates the
+  shadow pass on `contextChange`, so `renderPasses` is `[shadow, material]`
+  and `shadowPass` a plain property again, as in 2.5.0.
+- **3D rendered to a texture is still upside down** relative to 2D content,
+  as in v7, so `CompositeSprite` keeps its flipped texture (`rotate: 8`).
+  It renders through its own render target with a depth buffer; v8 creates
+  targets for a texture without one.
+- **A sprite's quad comes from `visualBounds`**, which includes the texture
+  trim; v8's `bounds` does not.
+
+## Differences from 2.5.0 so far
+
+For the migration note (step 1 below); each is forced by v8.
+
+- **`Point3D.magnitude` is a method**, `magnitude()`. `Point3D` and
+  `Quaternion` extend `ObservablePoint` again, as they did in 2.5.0, so a
+  `Container3D` is a `Container` to TypeScript and `stage.addChild(model)`
+  type-checks. v8's typings declare math-extras' `magnitude()` method on every
+  `ObservablePoint`, and a getter cannot satisfy it. `normalize` keeps its
+  2.5.0 signature through an overload.
+- **`SpriteBatchRenderer` is a v8 `Batcher`**: `render(sprites)` draws a
+  sorted list of sprites. v7's object renderer API (`start`, `render(sprite)`,
+  `flush`, `stop`) has no v8 equivalent.
+- **`StandardPipeline` is a render pipe**, reached as
+  `renderer.renderPipes.pipeline` rather than `renderer.plugins.pipeline`,
+  and no longer extends `ObjectRenderer`.
+- **`CompositeSpriteOptions.objectToRender` is a `Container`**; v8 has no
+  `DisplayObject`.
+- **`Sprite3D.blendMode` takes v8's blend mode names** (`"normal"`, `"add"`,
+  ...). It is `"normal"` by default, as it was, and does not inherit from the
+  containers above the sprite.
+- **Rounding a sprite's corners (`roundPixels`) uses the renderer's
+  resolution**; v7 used the global `settings.RESOLUTION`, which v8 does not
+  have.
 
 ## What's next, in dependency order
 
-1. A typed `addChild` override on `Container3D`, so a `Container3D` child
-   type-checks (fixes the two skybox errors and the casts in the glTF parser
-   and `instanced-model.ts`).
-2. Port `src/sprite/*` (`Sprite3D`, `CompositeSprite`, `ProjectionSprite`,
-   `SpriteBatchRenderer`) onto v8's batcher, keeping billboard modes, tint,
-   alpha and pixels-per-unit behaviour.
-3. API parity audit: diff the 2.5.0 `types/index.d.ts` against the port's and
-   restore anything changed without need; record the rest in a migration
-   note.
-4. Port the puppeteer/pixelmatch suite (`test/`) to v8 and run it against the
+1. API parity audit: diff the 2.5.0 `types/index.d.ts` against the port's and
+   restore anything changed without need; write `MIGRATION_V8.md`, starting
+   from the list above.
+2. Port the puppeteer/pixelmatch suite (`test/`) to v8 and run it against the
    existing v7 snapshots. A snapshot is re-baselined only when the
    difference is shown to come from PixiJS itself.
-5. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
+3. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
    export map goes), built `dist/` and `types/`, and a v8 getting-started in
    the README.
 
@@ -77,7 +115,7 @@ npx rollup -w -c rollup.harness.mjs
 ```
 
 serves `serve/` on http://127.0.0.1:8080. Pick a scene with the hash (`#cube`,
-`#teapot`, `#material`, `#demo`). The bundle includes the `pixi.js` from
+`#teapot`, `#material`, `#demo`, `#sprite`). The bundle includes the `pixi.js` from
 `node_modules`, so the harness always runs the version the port is built
 against. A page sets `window.__PIXI3D_READY__` when its scene is built,
 `window.__PIXI3D_ERROR__` if building it threw, and collects every shader
@@ -95,7 +133,7 @@ failure otherwise shows only as a mesh that never draws).
 ## Toolchain notes
 
 - The library build (`rollup.build.js`) still targets the old package
-  layout, so `npm run build` does not work yet; see step 5 above.
+  layout, so `npm run build` does not work yet; see step 3 above.
 - `typedoc` 0.22 predates the TypeScript 5 this port needs, so the lockfile
   is resolved with legacy peer dependencies until the docs step updates it.
 
@@ -149,9 +187,6 @@ compile against v8 and render (the `#teapot` and `#demo` scenes).
 
 Caveats:
 
-- `Container3D` (3D `position`/`scale`) is not structurally assignable to
-  v8's `ContainerChild`, so `addChild(mesh)` fails to type-check without a
-  cast; step 1 above fixes it.
 - Parsers register no `unload`; glTF textures share sources with the
   loader-cached image textures, so an unload that destroys sources needs a
   decision about ownership first.

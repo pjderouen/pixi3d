@@ -15,26 +15,24 @@ export class Container3D extends Container {
   /** The 3D transform (position, scale, rotation and the derived matrices). */
   transform = new Transform3D()
 
-  // The four accessors below replace v8's 2D `ObservablePoint` position and
-  // scale with 3D points. `Point3D` no longer extends `ObservablePoint` (see
-  // point.ts), so TypeScript rejects the override; the runtime contract is
-  // the one Pixi3D always had (`container.x` reads and writes the 3D x).
-  // @ts-ignore incompatible override, by design
+  // The position and scale are 3D points (`Point3D` is an `ObservablePoint`).
+  // PixiJS' own 2D position and scale stay at their defaults, so the 2D
+  // transform of a 3D object is always the identity.
+
   set position(value: IPoint3DData) {
     this.transform.position.copyFrom(value)
   }
 
-  // @ts-ignore incompatible override, by design
+  /** The position of the object relative to the local coordinates of the parent. */
   get position(): Point3D {
     return this.transform.position
   }
 
-  // @ts-ignore incompatible override, by design
   set scale(value: IPoint3DData) {
     this.transform.scale.copyFrom(value)
   }
 
-  // @ts-ignore incompatible override, by design
+  /** The scale of the object. */
   get scale(): Point3D {
     return this.transform.scale
   }

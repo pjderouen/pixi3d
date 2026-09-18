@@ -379,17 +379,14 @@ export class glTFParser {
         skin = this.parseSkin(this._asset.descriptor.nodes[node].skin, nodes[node], nodes)
       }
 
-      // Container3D's 3D position/scale accessors make it structurally
-      // incompatible with the `ContainerChild` type v8's `addChild` is
-      // declared against, hence the casts; the runtime hierarchy is unchanged.
       if (mesh !== undefined) {
         for (let primitive of this.parseMesh(mesh)) {
           primitive.skin = skin
-          nodes[node].addChild(<any>primitive)
+          nodes[node].addChild(primitive)
           model.meshes.push(primitive)
         }
       }
-      parent.addChild(<any>nodes[node])
+      parent.addChild(nodes[node])
       if (!this._asset.descriptor.nodes[node].children) {
         return
       }

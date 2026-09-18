@@ -3,21 +3,18 @@ import { InstancedMesh3D } from "./mesh/instanced-mesh"
 import { Model } from "./model"
 import { Mesh3D } from "./mesh/mesh"
 
-// Container3D's 3D position/scale accessors make it structurally incompatible
-// with the `ContainerChild` type v8's `addChild` is declared against, hence
-// the casts; the runtime hierarchy is unchanged.
 function clone(node: Container3D, parent: Container3D, meshes: InstancedMesh3D[]) {
   for (let child of node.children) {
     if (child instanceof Mesh3D) {
       const mesh = child.createInstance()
-      mesh.name = child.name
-      parent.addChild(<any>mesh)
+      mesh.label = child.label
+      parent.addChild(mesh)
       meshes.push(mesh)
     }
     else if (child instanceof Container3D) {
       const copy = new Container3D()
-      parent.addChild(<any>copy)
-      copy.name = node.name
+      parent.addChild(copy)
+      copy.label = node.label
       copy.position = child.position
       copy.scale = child.scale
       copy.rotationQuaternion = child.rotationQuaternion
