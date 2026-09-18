@@ -42,13 +42,13 @@ difference, it is the smallest possible one and is written down.
   [MIGRATION_V8.md](MIGRATION_V8.md). See "API parity audit" below.
 - **Upstream's snapshot suite passes on PixiJS 8.20.1, on WebGL 2 and on
   WebGL 1**: all 40 snapshot tests against the original v7 snapshots, none
-  re-baselined, and the two picking tests (`npm test`; see "Snapshot test
-  suite" below). Compared with 2.5.0 on PixiJS 7.2.4 on the same machine,
-  every WebGL 1 render is identical pixel for pixel, and so are 39 of the 40
-  WebGL 2 renders; the directional shadow differs by 3 pixels there, most
-  likely from the shadow map's depth buffer (v7 used a 16-bit depth
-  texture, v8 a 24-bit buffer).
-- **Not verified yet:** morphing, which no test covers.
+  re-baselined, the two picking tests and two new morphing tests: 44 tests
+  (`npm test`; see "Snapshot test suite" below). Compared with 2.5.0 on
+  PixiJS 7.2.4 on the same machine, every WebGL 1 render is identical pixel
+  for pixel, and so are 41 of the 42 WebGL 2 renders; the directional
+  shadow differs by 3 pixels there, most likely from the shadow map's depth
+  buffer (v7 used a 16-bit depth texture, v8 a 24-bit buffer).
+- Every subsystem of 2.5.0 is now covered by a test or a harness scene.
 
 ### v8 differences found by rendering
 
@@ -201,6 +201,12 @@ the renderer created with `autoDetectRenderer`, and the legacy blur above.
 The picking tests are new versions of upstream's, which asserted inside the
 page and so never ran under puppeteer; they run in both runners now, through
 `evaluateInPage`.
+
+Upstream had no morphing test. `test/morph.test.mjs` renders a quad with one
+morph target (`test/assets/morph/morph.gltf`, written by hand), at the
+mesh's default weight and at an animated one. Its two snapshots were
+rendered by 2.5.0 on PixiJS 7.2.4 in the same way as upstream's, so the
+port is compared with the original implementation there too.
 
 ## Render harness
 
