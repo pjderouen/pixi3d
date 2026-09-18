@@ -1,4 +1,6 @@
 # Pixi3D
+> **Use this software at your own risk.** This is an unofficial fork that ports Pixi3D to PixiJS v8. It is only intended as a patch for a personal project: it comes as is, with no warranty and no support, and it is not affiliated with or endorsed by the original Pixi3D project, which lives at https://github.com/jnsmalm/pixi3d. The port is unfinished; see [PORT_STATUS.md](PORT_STATUS.md).
+
 Pixi3D is a 3D rendering library for the web. It's built on top of PixiJS (which is at it's core, an established 2D rendering library). This makes Pixi3D have seamless integration with already existing 2D applications.
 
 * Load models from file (glTF) or create procedural generated meshes
@@ -6,16 +8,18 @@ Pixi3D is a 3D rendering library for the web. It's built on top of PixiJS (which
 * Customized materials and shaders
 * 3D sprites
 * Transformation, morphing and skeletal animations
-* Compatible with PixiJS v5, v6 and v7.
+* This fork: compatible with PixiJS v8, from 8.20 on. For PixiJS v5, v6 and v7, use upstream Pixi3D 2.5.
 
 ![SPY-HYPERSPORT](https://github.com/jnsmalm/pixi3d/blob/develop/spy-hypersport.jpg?raw=true)
 
 *"SPY-HYPERSPORT" (https://skfb.ly/o8z7t) by Amvall is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/). Rendered using Pixi3D.*
 
 ## Production ready?
-Yes, it's currently being used in multiple projects in production running on hundreds of thousands of different devices (both desktop and mobile).
+Upstream Pixi3D is: it's currently being used in multiple projects in production running on hundreds of thousands of different devices (both desktop and mobile). This fork's PixiJS v8 port is not; it is still being ported and verified.
 
 ## Getting started
+The instructions below are upstream's, for Pixi3D 2.5 on PixiJS v5 to v7, and still show that version's API. This fork's v8 build and instructions come with its first tagged release.
+
 The easiest way to get started is to use the automatic setup which creates a simple project with everything needed to start immediatly. Node.js must be installed, go to https://nodejs.org to download.
 
 Type in the following using the terminal/console:
@@ -28,7 +32,7 @@ After installation is complete, type `cd my-pixi3d-app` and `npm start` to start
 ### Manual setup
 
 - [Download the latest version of Pixi3D](https://github.com/jnsmalm/pixi3d/releases)
-- [Download PixiJS](https://github.com/pixijs/pixi.js/releases) (Pixi3D is compatible with all versions from 5.3 and later)
+- [Download PixiJS](https://github.com/pixijs/pixi.js/releases) (upstream Pixi3D is compatible with all versions from 5.3 to 7; this fork needs 8.20 or later)
 
 Next, create a file *app.js* with the following contents.
 

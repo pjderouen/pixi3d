@@ -66,6 +66,9 @@
     "url": "https://github.com/jnsmalm/pixi3d/issues"
   },
   "homepage": "https://github.com/jnsmalm/pixi3d#readme",
+  "peerDependencies": {
+    "pixi.js": "^8.20.0"
+  },
   "devDependencies": {
     "@pixi/assets": "^6.5.1",
     "@rollup/plugin-commonjs": "^22.0.1",
@@ -78,7 +81,7 @@
     "gl-matrix": "^3.3.0",
     "mocha": "^10.0.0",
     "pixelmatch": "^5.2.1",
-    "pixi.js": "^8.20.1",
+    "pixi.js": "~8.20.1",
     "pngjs": "^6.0.0",
     "puppeteer": "^18.0.5",
     "rimraf": "^3.0.2",

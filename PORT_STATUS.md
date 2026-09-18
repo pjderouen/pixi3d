@@ -6,77 +6,84 @@ and a closed duplicate from August 2024, neither acted on; the last commit
 to the project was in May 2024. This fork exists to port it to v8 so it can
 be used in a v8 project. Branch: `pixi-v8-port`.
 
+The goal is a compatibility port, not a redesign: every feature Pixi3D 2.5.0
+has, with the same public API wherever PixiJS v8 allows. Where v8 forces a
+difference, it is the smallest possible one and is written down.
+
+## PixiJS version
+
+- **Target: PixiJS 8.20.** `peerDependencies` is `pixi.js ^8.20.0`; the port
+  is developed, type-checked and render-tested on 8.20.x (`devDependencies`
+  `~8.20.1`).
+- The cubemap upload registers a `TextureUploaderWebGL` extension, which
+  PixiJS added in 8.19; nothing older can load a `Cubemap`.
+- PixiJS v5, v6 and v7 are not supported by this fork. Use upstream Pixi3D
+  2.5 for those.
+
 ## Current state
 
-`npx tsc --noEmit -p tsconfig.json` (against `pixi.js@8` as a devDependency)
-reports **457 errors** across the 132-file, ~8,100-line source tree,
-down from ~472 after the initial mechanical pass. Nothing has been built
-or rendered yet — every claim below is a compile-time claim, not a runtime
-one. **Do not treat a file as done until it has been checked against real
-rendered output**, not just `tsc`; the hardest remaining pieces
-(shaders, the render pipeline) can type-check cleanly and still draw
-nothing or draw garbage.
+- `npx tsc --noEmit -p tsconfig.json` reports **60 errors**, all in code not
+  ported yet: `src/sprite/*` (58, the 3D sprite batching) and
+  `src/skybox/skybox.ts` (2, `addChild` of a `Container3D`; see below).
+- **Rendered on PixiJS 8.20.1** in the harness (below), with no shader
+  compile errors:
+  - `#cube`: a lit `StandardMaterial` cube on a plane (the render core).
+  - `#teapot`: a glTF model through `Assets` (loaders, glTF parser, `Model`).
+  - `#material`: a custom `Material.from` shader.
+  - `#demo`: upstream's demo in full, with image-based lighting from
+    cubemaps, a shadow-casting directional light with soft (blurred)
+    shadows, and orbit control.
+- **Not verified yet:** picking, the skybox, 3D sprites, animation,
+  skinning, morphing, instancing, the WebGL1 path, and the upstream
+  snapshot test suite.
 
-### Done and typecheck-verified
+### v8 differences found by rendering
 
-- All `@pixi/*` sub-package imports (`@pixi/core`, `@pixi/constants`,
-  `@pixi/display`, `@pixi/math`, `@pixi/sprite`, `@pixi/utils`,
-  `@pixi/ticker`, `@pixi/settings`, `@pixi/interaction`, `@pixi/assets`,
-  `@pixi/loaders`) consolidated into the single `pixi.js` v8 package
-  (68 files).
-- Shape-preserving renames: `IDestroyOptions`→`DestroyOptions`,
-  `IPointData`→`PointData`, `IBatchableElement`→`BatchableElement`.
-- `src/capabilities.ts` + new `src/compatibility/gl-context.ts`: raw GL
-  capability probing now prefers v8's already-detected
-  `(renderer as WebGLRenderer).context.extensions.*` flags over manual
-  `gl.getExtension()` calls, with a single documented cast
-  (`getGlContext()`) for the handful of call sites that still need the raw
-  `WebGL2RenderingContext` (`GlContextSystem.gl` is `protected` in v8's
-  public types since v8 also supports WebGPU/Canvas backends; pixi3d is
-  WebGL-only so the cast is safe here, not elsewhere).
-- `src/material/standard/standard-material-{texture,normal-texture,
-  occlusion-texture,matrix-texture}.ts`: `BaseTexture`→`TextureSource`
-  throughout; `StandardMaterialMatrixTexture` now uses v8's
-  `BufferImageSource` (infers `rgba32float` from the `Float32Array`
-  directly) instead of the old `BaseTexture(BufferResource, {format:
-  FORMATS.RGBA, type: TYPES.FLOAT})` construction, making
-  `compatibility/buffer-resource.ts` unnecessary for this call site (other
-  call sites still use it — not yet audited).
+Each of these type-checked cleanly and still drew the wrong thing.
 
-### Error inventory (`tsc` codes, most to least common)
-
-| Code | Count | Cause |
-|---|---|---|
-| TS2339 | 227 | Property doesn't exist — mostly `.baseTexture`, `.gl`, old renderer-plugin properties |
-| TS2345 | 80 | Argument type mismatches, largely from the enum→string-literal changes below |
-| TS2554 | 42 | Constructor/call arity changes (`Shader`, `Program`, `Ticker` callback) |
-| TS2305/2724 | ~60 | Removed or renamed exports (table below) |
-| TS18048 | 17 | New strict-null cases from v8's stricter public types |
-| TS2416 | 15 | Method signature mismatches on overrides (mostly the `ObjectRenderer` subclass) |
-| TS2551 | 11 | Near-miss identifiers (`extensions.add` vs old `registerPlugin`, etc.) |
-
-### Confirmed removed/renamed exports still to fix
-
-| v7 symbol | v8 replacement | Where used |
-|---|---|---|
-| `BaseTexture` | `Texture` (wraps `TextureSource`) | `cubemap/cubemap.ts`, `cubemap/mipmap-resource.ts`, `gltf/gltf-parser.ts` (texture module done) |
-| `DisplayObject` | `Container` (type only — v8 collapsed the hierarchy) | 5 files |
-| `settings` (global) | `AbstractRenderer.defaultOptions` / per-instance options / `DOMAdapter` | 5 files |
-| `InteractionManager`, `InteractionEvent` | `EventSystem`, `FederatedPointerEvent` (`renderer.events`) | `camera/camera-orbit-control.ts`, `picking/*` (6 uses) |
-| `FORMATS`, `TYPES`, `TARGETS`, `MIPMAP_MODES` (GL-constant enums) | `TEXTURE_FORMATS` string union (e.g. `'rgba8unorm'`, `'rgba32float'`) + `autoGenerateMipmaps: boolean`; see `src/material/standard/standard-material-matrix-texture.ts` for a worked example | `gltf/gltf-parser.ts` (glTF `format`/`sampler` mapping — the biggest remaining single-file job), `cubemap/*` |
-| `LoaderResource`, `Resource`, `ILoaderResource`, `@pixi/loaders` | `Assets.add({alias, src})` / `Assets.load()` — the whole loader flow, not a rename | `src/loader/*` (4 files: `cubemap-loader.ts`, `gltf-binary-loader.ts`, `gltf-loader.ts`, `shader-source-loader.ts`) |
-| `Program`, `Shader.from(vertex, fragment, uniforms)` | `GlProgram.from({vertex, fragment})` + `Shader.from({gl: {vertex, fragment}, resources})`; **textures move out of uniforms into `resources`**; uniforms need `{value, type}` wrappers | `material/standard/*` shader construction, `sprite/sprite-batch-renderer.ts` |
-| `ObjectRenderer`, `Renderer.registerPlugin`, `IRendererPlugin`, `BatchShaderGenerator`, `BatchRenderer` | `RenderPipe<T>` interface (`addRenderable`/`updateRenderable`/`validateRenderable`/`destroyRenderable`) registered via `extensions.add({type: ExtensionType.WebGLPipes, name}, PipeClass)` — an architecturally different, instruction-deferred renderer-plugin system, not a mechanical rename | `pipeline/standard-pipeline.ts`, `sprite/sprite-batch-renderer.ts`, `compatibility/*` install helpers |
+- **`x` and `y` bypassed the 3D position.** v8's `Container.x`/`y` accessors
+  read and write its 2D `_position` directly, so `container.y = 1` changed
+  nothing in 3D. `Container3D` now overrides both, as it already did `z`.
+- **The shadow blur failed to compile on WebGL2**, which v8 uses by default:
+  it was built without the WebGL version defines and used `texture2D`.
+- **Loader parsers need `name` beside `id`.** `name` is deprecated in 8.20,
+  but the `Assets` loader still validates parsers by it, and reports every
+  parser without one as a conflict.
+- **glTF nodes set `label`**, v8's name for a container's name; `name` still
+  reads it through v8's deprecated alias.
 
 ## What's next, in dependency order
 
-1. **`gltf/gltf-parser.ts`** — the `FORMATS`/`TYPES`/`TARGETS` → `TEXTURE_FORMATS` mapping for every glTF `image.mimeType`/`sampler` combination the parser handles, plus its `BaseTexture` construction sites. High value: almost everything else (materials, textures, meshes) is loaded through this file.
-2. **`src/loader/*`** (4 files) — rewrite atop `Assets.add`/`Assets.load` instead of the removed `@pixi/loaders` pipeline. Self-contained, no dependents block it.
-3. **`camera/camera-orbit-control.ts` + `picking/*`** — `InteractionManager`/`InteractionEvent` → `EventSystem`/`FederatedPointerEvent`. `renderer.events` is the v8 entry point; check `container.eventMode` defaults changed from `'auto'` to `'passive'`.
-4. **Shader/Program → GlProgram** (`material/standard/*`, `sprite/sprite-batch-renderer.ts`) — needs the actual GLSL source reviewed per shader, not just the wrapper API, since uniform declarations change shape and textures move to `resources`. Do this file-by-file with a real render test, not by pattern-matching.
-5. **`pipeline/standard-pipeline.ts` + `sprite/sprite-batch-renderer.ts` → `RenderPipe`** — the architecturally hard one. `StandardPipeline` currently extends `ObjectRenderer` and is driven imperatively (`render()`/`flush()` called directly); v8's `RenderPipe` is invoked by the renderer's own instruction-execution pass via `addRenderable`/`updateRenderable`. The pragmatic route is likely to keep pixi3d's existing imperative per-mesh draw calls (it already bypasses Pixi's 2D batcher for meshes) inside `addRenderable`, rather than adopting v8's `InstructionSet` batching — but that needs a working render test to confirm it's actually invoked at the right point in the frame, not just a type-checks-clean guess. Everything upstream of this (the shader files) should land first so there's something correct to render.
-6. **Sweep the remaining `DisplayObject`/`settings`/`IPoint` mechanical renames** — genuinely mechanical, can be done any time, left for last because they don't block anything.
-7. **Get an actual render smoke test running.** `serve/` + `rollup.serve.js` already exist for this in the original repo — point them at the `pixi.js` v8 devDependency and get a spinning textured cube on screen before trusting anything in steps 1, 4, or 5.
+1. A typed `addChild` override on `Container3D`, so a `Container3D` child
+   type-checks (fixes the two skybox errors and the casts in the glTF parser
+   and `instanced-model.ts`).
+2. Port `src/sprite/*` (`Sprite3D`, `CompositeSprite`, `ProjectionSprite`,
+   `SpriteBatchRenderer`) onto v8's batcher, keeping billboard modes, tint,
+   alpha and pixels-per-unit behaviour.
+3. API parity audit: diff the 2.5.0 `types/index.d.ts` against the port's and
+   restore anything changed without need; record the rest in a migration
+   note.
+4. Port the puppeteer/pixelmatch suite (`test/`) to v8 and run it against the
+   existing v7 snapshots. A snapshot is re-baselined only when the
+   difference is shown to come from PixiJS itself.
+5. Package shape for the first tag: v8-only exports (the `pixi5`/`pixi7`
+   export map goes), built `dist/` and `types/`, and a v8 getting-started in
+   the README.
+
+## Render harness
+
+```
+npx rollup -w -c rollup.harness.mjs
+```
+
+serves `serve/` on http://127.0.0.1:8080. Pick a scene with the hash (`#cube`,
+`#teapot`, `#material`, `#demo`). The bundle includes the `pixi.js` from
+`node_modules`, so the harness always runs the version the port is built
+against. A page sets `window.__PIXI3D_READY__` when its scene is built,
+`window.__PIXI3D_ERROR__` if building it threw, and collects every shader
+that failed to compile, with its source, in `window.__PIXI3D_SHADER_ERRORS__`
+(Pixi3D compiles its mesh shaders outside PixiJS' program cache, so such a
+failure otherwise shows only as a mesh that never draws).
 
 ## Explicitly out of scope for this port
 
@@ -87,11 +94,68 @@ nothing or draw garbage.
 
 ## Toolchain notes
 
-- `pixi.js@8` and `typescript@5` are installed as `devDependencies` for
-  this port's typecheck loop. The `rollup`/`esbuild` build config
-  (`rollup.build.js`) still targets the old package layout and has not
-  been touched — `npm run build` will not work yet.
-- `package.json`'s dual `pixi5`/`pixi7` export map
-  (`dist/{cjs,esm}/pixi{5,7}/pixi3d.js`) needs a decision: add a `pixi8`
-  variant alongside them, or drop the multi-version build entirely and
-  make this fork v8-only. Not decided yet.
+- The library build (`rollup.build.js`) still targets the old package
+  layout, so `npm run build` does not work yet; see step 5 above.
+- `typedoc` 0.22 predates the TypeScript 5 this port needs, so the lockfile
+  is resolved with legacy peer dependencies until the docs step updates it.
+
+## glTF / loader slice
+
+`src/gltf/**`, `src/loader/**`, `src/model.ts` and `src/instanced-model.ts`
+compile against v8 and render (the `#teapot` and `#demo` scenes).
+
+- **Loading is `Assets` + `extensions.add(LoadParser)`.** The removed
+  `@pixi/loaders` plugin flow (`Compatibility.installLoaderPlugin`,
+  `setLoaderResourceExtensionType`, `Compatibility.assets`) is gone. Each of
+  `src/loader/{gltf,gltf-binary,cubemap,shader-source}-loader.ts` is now a
+  `LoaderParser` registered at import time; the public results are
+  unchanged: `Assets.load("x.gltf" | "x.glb")` -> `glTFAsset`,
+  `Assets.load("x.cubemap")` -> `Cubemap`, `Assets.load("x.vert" | ".frag" |
+  ".glsl")` -> `string`. Extension matching uses v8's `checkExtension` (exact
+  extension, query string stripped) rather than the old `url.includes(".gltf")`.
+- **Dependent resources.** External glTF buffers are fetched directly with
+  `DOMAdapter.get().fetch`; external glTF images and cubemap faces are loaded
+  through the `Loader` instance the parser receives (so they share its
+  promise cache) and fall back to `Assets.load` outside a parser
+  (`glTFAsset.fromURL`). Relative uris resolve against the glTF/cubemap file
+  url, as before.
+- **`glTFResourceLoader` is now promise-based**: `loadBuffer(uri):
+  Promise<ArrayBuffer>` and `loadTexture(uri): Promise<Texture>` replace the
+  callback `load(uri, onComplete: (resource: ILoaderResource) => void)`.
+  `glTFUrlResourceLoader` in `gltf-asset.ts` is the default implementation.
+  `glTFAsset.load` / `glTFAsset.fromBuffer` return promises (the optional
+  callback still fires for source compatibility); `fromBuffer` takes an
+  optional resource loader so a `.glb` with external uris loads too.
+- **Embedded / binary-chunk images** are decoded up front with
+  `createImageBitmap(blob, { premultiplyAlpha: "none" })` (HTMLImageElement
+  fallback) and wrapped in `new Texture({ source: new ImageSource(...) })`,
+  since v8's `Texture.from(url)` is a cache lookup, not a load.
+- **glTF sampler mapping** (`gltf-parser.ts`): each glTF texture gets its
+  own `ImageSource` over the shared decoded resource (v8 keeps sampling state
+  on the source, so this is the equivalent of v7's per-texture
+  `BaseTexture`). `wrapS`/`wrapT` -> `style.addressModeU/V`
+  (`repeat` / `clamp-to-edge` / `mirror-repeat`), `magFilter`/`minFilter` ->
+  `style.magFilter/minFilter/mipmapFilter` (`nearest` / `linear`),
+  and the `*_MIPMAP_*` min filters -> `autoGenerateMipmaps: true`. When a
+  sampler omits filters, trilinear + mipmaps is used (the glTF sample viewer's
+  choice); v7 only honoured `wrapS`. Alpha stays `no-premultiply-alpha`.
+  `Texture.clone()` is gone, so material textures are `new Texture({ source })`
+  over the parsed texture (`parseTextureInfo`, which also folds the five
+  duplicated `KHR_texture_transform` blocks into one).
+- `Model.getBoundingBox` calls `updateTransform3D()`; v8's
+  `Container.updateTransform()` is a different (2D) method.
+- `src/index.ts`: dropped the `@pixi/mixin-get-child-by-name` type reference
+  (v8 ships `getChildByName`/`getChildByLabel` itself).
+
+Caveats:
+
+- `Container3D` (3D `position`/`scale`) is not structurally assignable to
+  v8's `ContainerChild`, so `addChild(mesh)` fails to type-check without a
+  cast; step 1 above fixes it.
+- Parsers register no `unload`; glTF textures share sources with the
+  loader-cached image textures, so an unload that destroys sources needs a
+  decision about ownership first.
+- The geometry of a mesh carries every attribute its glTF primitive has, and
+  v8 warns once per attribute a shader does not use ("Attribute a_Tangent is
+  not present in the shader"). Harmless, but noisy; worth quieting when the
+  geometry path is next touched.
