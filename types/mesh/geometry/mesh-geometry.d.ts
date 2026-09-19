@@ -1,0 +1,42 @@
+import { Geometry } from "pixi.js";
+import { MeshShader } from "../mesh-shader";
+import { MeshGeometryAttribute } from "./mesh-geometry-attribute";
+import { MeshGeometryTarget } from "./mesh-geometry-target";
+/**
+ * Geometry with mesh data (i.e. positions, normals, uvs).
+ */
+export declare class MeshGeometry3D {
+    private _shaderGeometry;
+    private _shaderGeometryInstanced;
+    indices?: MeshGeometryAttribute;
+    positions?: MeshGeometryAttribute;
+    uvs?: MeshGeometryAttribute[];
+    normals?: MeshGeometryAttribute;
+    tangents?: MeshGeometryAttribute;
+    targets?: MeshGeometryTarget[];
+    joints?: MeshGeometryAttribute;
+    weights?: MeshGeometryAttribute;
+    colors?: MeshGeometryAttribute;
+    /**
+     * Returns geometry with attributes required by the specified shader.
+     * @param shader The shader to use.
+     */
+    getShaderGeometry(shader: MeshShader): Geometry;
+    /**
+     * Creates geometry with attributes required by the specified shader.
+     * @param shader The shader to use.
+     * @param instanced Value indicating if the geometry will be instanced.
+     */
+    addShaderGeometry(shader: MeshShader, instanced: boolean): void;
+    /**
+     * Returns a value indicating if geometry with required attributes has been
+     * created by the specified shader.
+     * @param shader The shader to test.
+     * @param instanced Value indicating if the geometry is instanced.
+     */
+    hasShaderGeometry(shader: MeshShader, instanced: boolean): boolean;
+    /**
+     * Destroys the geometry and it's used resources.
+     */
+    destroy(): void;
+}

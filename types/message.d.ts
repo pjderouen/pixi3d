@@ -1,0 +1,5 @@
+export declare enum Message {
+    meshVertexSkinningFloatingPointTexturesNotSupported = "Mesh is using vertex skinning but floating point textures is not supported on this device/environment. In case of errors, try changing the environment in PixiJS settings. Set \"PIXI.settings.PREFER_ENV = PIXI.ENV.WEBGL2\" before creating a renderer/application.",
+    meshVertexSkinningNumberOfJointsNotSupported = "Mesh is using vertex skinning but the number of joints ({joints}) is not supported on this device/environment. Max number of supported joints is {maxJoints}, try reducing the number of joints.",
+    imageBasedLightingShaderTextureLodNotSupported = "Image based lighting is used but shader texture lod is not supported on this device/environment, the material may not be displayed correctly. Try changing the environment in PixiJS settings. Set \"PIXI.settings.PREFER_ENV = PIXI.ENV.WEBGL2\" before creating a renderer/application."
+}
