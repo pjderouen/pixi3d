@@ -24,7 +24,7 @@ This fork needs PixiJS 8.20 or later, and renders with WebGL (not WebGPU). Comin
 The fork is not published to npm; install a tagged release from GitHub, next to PixiJS:
 
 ```
-npm install pixi.js@^8.20.0 github:pjderouen/pixi3d#v3.0.0-alpha.1
+npm install pixi.js@^8.20.0 github:pjderouen/pixi3d#v3.0.0-alpha.2
 ```
 
 Then import from *pixi3d*, i.e. `import { Model } from "pixi3d"`. A rotating, lit cube:
@@ -61,7 +61,7 @@ Each tagged release includes the browser build, which reads PixiJS from the `PIX
 <html lang="en">
 <body>
   <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.20.1/dist/pixi.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/pjderouen/pixi3d@v3.0.0-alpha.1/dist/browser/pixi3d.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/pjderouen/pixi3d@v3.0.0-alpha.2/dist/browser/pixi3d.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

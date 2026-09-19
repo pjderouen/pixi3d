@@ -1,6 +1,6 @@
 {
   "name": "pixi3d",
-  "version": "3.0.0-alpha.1",
+  "version": "3.0.0-alpha.2",
   "description": "The 3D renderer for PixiJS, ported to PixiJS v8 (an unofficial fork). Seamless integration with 2D applications.",
   "main": "dist/cjs/pixi3d.js",
   "module": "dist/esm/pixi3d.js",
