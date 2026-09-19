@@ -54,6 +54,13 @@ export class StandardPipeline {
   renderPasses: RenderPass[]
 
   /**
+   * How many meshes the pipeline has drawn since it was created. It only
+   * grows: two readings tell whether any mesh was drawn between them, which
+   * is how the picking interaction knows a render drew 3D content.
+   */
+  meshesRendered = 0
+
+  /**
    * Creates a new standard pipeline using the specified renderer.
    * @param renderer The renderer to use.
    */
@@ -169,6 +176,7 @@ export class StandardPipeline {
    * the render passes, then the sprites.
    */
   flush() {
+    this.meshesRendered += this._meshes.length
     for (let mesh of this._meshes) {
       mesh.updateTransform3D()
       if (mesh.skin) {

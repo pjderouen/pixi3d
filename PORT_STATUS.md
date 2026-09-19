@@ -42,7 +42,8 @@ difference, it is the smallest possible one and is written down.
   [MIGRATION_V8.md](MIGRATION_V8.md). See "API parity audit" below.
 - **Upstream's snapshot suite passes on PixiJS 8.20.1, on WebGL 2 and on
   WebGL 1**: all 40 snapshot tests against the original v7 snapshots, none
-  re-baselined, the two picking tests and two new morphing tests: 44 tests
+  re-baselined, the two picking tests, two new morphing tests and two new
+  tests of when picking hit tests the stage: 46 tests
   (`npm test`; see "Snapshot test suite" below). Compared with 2.5.0 on
   PixiJS 7.2.4 on the same machine, every WebGL 1 render is identical pixel
   for pixel, and so are 41 of the 42 WebGL 2 renders; the directional
@@ -136,6 +137,24 @@ everything that only became right on a later frame, and a few worse.
 - PixiJS v8 sets some WebGL 2-only texture parameters on WebGL 1 too, which
   logs `INVALID_ENUM: texParameter` warnings there; they change nothing.
 
+### Faster than 2.5.0 where it did work for nothing
+
+- **Picking hit tests the stage only after a render that drew meshes.** A
+  picking hit area only registers itself when the event system calls its
+  `contains`, so the picking interaction forces a hit test at (0, 0) to keep
+  its map current: a walk of the whole stage. 2.5.0 did that on every tick
+  for every renderer, and every renderer gets a picking interaction once
+  Pixi3D loads, as a plugin in v7 and a system in v8. A renderer drawing
+  only 2D paid for it on every frame: with a stage of about a thousand
+  interactive 2D objects, the walk tripled the CPU time of a frame. Hit areas
+  belong to meshes and models, so a render that drew no meshes has nothing
+  to register; the pipeline counts the meshes it draws
+  (`StandardPipeline.meshesRendered`), and the picking interaction skips the
+  hit test when the count has not moved since the last one. Where meshes
+  are drawn, it runs as before (`test/interaction.test.mjs` checks both).
+- **The picking map is created when a hit area is first tested**, not with
+  every renderer.
+
 ## API parity audit
 
 2.5.0 never committed its generated `types/`, so the audit compared sources:
@@ -173,8 +192,9 @@ error. The differences that remain are forced by v8 and are all in
 
 ## Releases
 
-`v3.0.0-alpha.1` is tagged. Installing it from GitHub
-(`github:pjderouen/pixi3d#v3.0.0-alpha.1`) next to PixiJS 8.20.1 gives a
+`v3.0.0-alpha.2` is the latest tag (`v3.0.0-alpha.1` before it). Installing
+it from GitHub (`github:pjderouen/pixi3d#v3.0.0-alpha.2`) next to PixiJS
+8.20.1 gives a
 package that type-checks (strict, declarations checked too) and bundles,
 and the README's script tags load its browser build from jsDelivr and
 render.
