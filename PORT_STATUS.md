@@ -171,15 +171,24 @@ compiled without errors against the port, and failed on a deliberate type
 error. The differences that remain are forced by v8 and are all in
 [MIGRATION_V8.md](MIGRATION_V8.md).
 
-## What's next, in dependency order
+## Releases
 
-1. Tag `v3.0.0-alpha.1`. The package is ready: one entry point (`dist/esm`,
-   `dist/cjs`, `types`), version `3.0.0-alpha.1`, a v8 getting-started in
-   the README, and a changelog entry. A packed tarball installed next to
-   PixiJS 8.20.1 type-checks (strict, declarations checked too) and bundles.
-   `dist/` and `types/` are ignored on the branch, so the tag goes on a
-   release commit that adds them (`npm run build && npm run types`), since
-   installing from GitHub does not build.
+`v3.0.0-alpha.1` is tagged. Installing it from GitHub
+(`github:pjderouen/pixi3d#v3.0.0-alpha.1`) next to PixiJS 8.20.1 gives a
+package that type-checks (strict, declarations checked too) and bundles,
+and the README's script tags load its browser build from jsDelivr and
+render.
+
+Installing from GitHub does not build, and the branch ignores `dist/` and
+`types/`, so a release is tagged on a commit of its own, off the branch:
+
+1. Set the version in `package.json` and `package-lock.json`, add a
+   changelog entry, commit it to the branch and push.
+2. `npm test`, and `npm test` again with `WEBGL_VERSION=1`; then
+   `npm run types` (the test run has already built `dist/`).
+3. `git checkout --detach`, `git add -f dist types`, commit ("Release
+   x.y.z"), `git tag -a vx.y.z`, `git checkout pixi-v8-port`.
+4. Push the tag alone: `git push origin vx.y.z`.
 
 ## Snapshot test suite
 
